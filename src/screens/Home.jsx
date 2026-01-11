@@ -485,7 +485,20 @@ const Home = () => {
                             </div>
                             <span className="text-sm md:text-base font-semibold text-zinc-300">CodexSpace</span>
                         </div>
-                        <p className="text-zinc-500 text-xs md:text-sm text-center">© 2026 CodexSpace. Collaborative development platform.</p>
+                        
+                        <div className="flex flex-col md:flex-row items-center gap-3 md:gap-4">
+                            <p className="text-zinc-500 text-xs md:text-sm text-center">© 2026 CodexSpace. Collaborative development platform.</p>
+                            
+                            {/* Watermark - Made by A.R */}
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-br from-zinc-900/80 to-zinc-900/50 rounded-lg border border-zinc-800/50 backdrop-blur hover:border-amber-600/30 transition-all group">
+                                <svg className="w-3.5 h-3.5 text-amber-600 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                                </svg>
+                                <span className="text-xs font-medium text-zinc-400">
+                                    Made with <span className="text-red-500">♥</span> by <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-amber-500 font-bold">A.R</span>
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </footer>
