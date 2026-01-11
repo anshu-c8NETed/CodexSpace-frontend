@@ -300,7 +300,7 @@ const Project = () => {
                         </button>
                     </div>
                     <p className="text-xs text-white/60 mt-3 px-1">
-                        💡 <span className="font-medium">Tip:</span> Press Enter to send • Shift+Enter for new line
+                        💡 <span className="font-medium ">Tip:</span> Use "@ai" to interact with ai model and shift+enter for new line
                     </p>
                 </div>
 
@@ -705,5 +705,6 @@ const Project = () => {
         </main>
     )
 }
+
 
 export default Project
