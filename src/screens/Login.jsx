@@ -133,7 +133,7 @@ const Login = () => {
                     </form>
 
                     <p className="text-center text-gray-600 text-sm mt-8">
-                        Don't Have an account? <Link to="/register" className="text-black font-semibold hover:underline">Take me</Link>
+                        Don't Have an account? <Link to="/register" className="text-black font-semibold hover:underline">Register Now</Link>
                     </p>
                 </div>
             </div>
@@ -147,5 +147,6 @@ const Login = () => {
         </div>
     )
 }
+
 
 export default Login
