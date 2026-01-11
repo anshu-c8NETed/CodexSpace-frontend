@@ -98,18 +98,30 @@ const Home = () => {
                         </div>
 
                         <div className="flex items-center gap-2 md:gap-3">
-                            {/* User Badge - Hidden on small screens */}
-                            <div className="hidden lg:flex items-center gap-3 px-3 md:px-4 py-2 bg-zinc-900/50 rounded-xl border border-zinc-800/50 backdrop-blur">
-                                <div className="w-7 h-7 md:w-8 md:h-8 bg-gradient-to-br from-amber-600 to-amber-700 rounded-lg flex items-center justify-center text-xs font-bold text-zinc-950">
-                                    {user?.email?.charAt(0).toUpperCase()}
+                            {/* Enhanced User Profile Section */}
+                            <div className="hidden lg:flex items-center gap-3 px-4 py-2.5 bg-gradient-to-br from-zinc-900/80 to-zinc-900/50 rounded-xl border border-zinc-800/50 backdrop-blur-xl hover:border-amber-600/30 transition-all duration-300 shadow-lg shadow-black/20">
+                                {/* Avatar with gradient ring */}
+                                <div className="relative">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-amber-600/50 to-amber-700/50 rounded-lg blur-sm"></div>
+                                    <div className="relative w-8 h-8 bg-gradient-to-br from-amber-600 to-amber-700 rounded-lg flex items-center justify-center text-sm font-bold text-zinc-950 shadow-inner">
+                                        {user?.email?.charAt(0).toUpperCase()}
+                                    </div>
                                 </div>
-                                <span className="text-xs md:text-sm font-medium text-zinc-300 max-w-[120px] truncate">{user?.email}</span>
+                                
+                                {/* Email with better styling */}
+                                <div className="flex flex-col">
+                                    <span className="text-xs text-zinc-500 font-medium">Signed in as</span>
+                                    <span className="text-sm font-semibold text-zinc-200 max-w-[140px] truncate">{user?.email}</span>
+                                </div>
                             </div>
                             
-                            {/* Logout Button */}
+                            {/* Enhanced Logout Button */}
                             <button 
                                 onClick={handleLogout}
-                                className="px-3 md:px-4 py-2 bg-zinc-900/50 hover:bg-zinc-800/50 backdrop-blur rounded-xl font-medium transition-all duration-300 text-xs md:text-sm border border-zinc-800/50 text-zinc-300">
+                                className="cursor-pointer group relative px-4 py-2.5 bg-gradient-to-br from-zinc-900/80 to-zinc-900/50 hover:from-red-950/40 hover:to-red-900/30 backdrop-blur-xl rounded-xl font-semibold transition-all duration-300 text-sm border border-zinc-800/50 hover:border-red-600/30 text-zinc-300 hover:text-red-400 shadow-lg shadow-black/20 hover:shadow-red-900/20 flex items-center gap-2">
+                                <svg className="w-4 h-4 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                </svg>
                                 Logout
                             </button>
 
@@ -180,7 +192,7 @@ const Home = () => {
                             <button
                                 onClick={() => setIsModalOpen(true)}
                                 className="tracking-wide cursor-pointer group relative inline-flex items-center gap-2 md:gap-3 px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-amber-600 to-amber-700 text-zinc-950 rounded-full font-semibold text-sm md:text-base hover:shadow-2xl hover:shadow-amber-900/30 transition-all duration-300 hover:-translate-y-0.5 ">
-                                <span>Launch Platform</span>
+                                <span className=''>Launch Platform</span>
                                 <svg className="w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24 ">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                                 </svg>
@@ -539,4 +551,3 @@ const Home = () => {
 }
 
 export default Home
-
