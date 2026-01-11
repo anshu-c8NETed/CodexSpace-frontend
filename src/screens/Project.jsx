@@ -39,6 +39,8 @@ const Project = () => {
     const [iframeUrl, setIframeUrl] = useState(null)
     const [runProcess, setRunProcess] = useState(null)
     const [isAiTyping, setIsAiTyping] = useState(false)
+    const [showMobileChat, setShowMobileChat] = useState(true)
+    const [showMobilePreview, setShowMobilePreview] = useState(false)
     const navigate = useNavigate()
 
     const handleUserClick = (id) => {
@@ -160,87 +162,130 @@ const Project = () => {
     }, [messages, isAiTyping])
 
     return (
-        <main className='h-screen w-screen flex bg-[#0a0a0a]'>
-            {/* Chat Sidebar - PREMIUM CHAT DESIGN */}
-            <section className="relative flex flex-col h-screen w-[420px] bg-gradient-to-b from-[#7c3aed] to-[#5b21b6] shadow-2xl">
-                {/* Header with Glass Effect */}
-                <header className='flex justify-between items-center p-5 backdrop-blur-xl bg-white/10 border-b border-white/20'>
-                    <div className="flex items-center gap-3">
+        <main className='h-screen w-screen flex flex-col md:flex-row bg-[#0a0a0a] overflow-hidden'>
+            {/* Mobile View Switcher */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#2d2d30] border-t border-[#3e3e42] flex">
+                <button
+                    onClick={() => {
+                        setShowMobileChat(true)
+                        setShowMobilePreview(false)
+                    }}
+                    className={`flex-1 py-3 flex items-center justify-center gap-2 transition-all ${
+                        showMobileChat ? 'bg-purple-600 text-white' : 'text-zinc-400'
+                    }`}>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    <span className="text-sm font-medium">Chat</span>
+                </button>
+                <button
+                    onClick={() => {
+                        setShowMobileChat(false)
+                        setShowMobilePreview(false)
+                    }}
+                    className={`flex-1 py-3 flex items-center justify-center gap-2 transition-all ${
+                        !showMobileChat && !showMobilePreview ? 'bg-purple-600 text-white' : 'text-zinc-400'
+                    }`}>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                    <span className="text-sm font-medium">Code</span>
+                </button>
+                {iframeUrl && (
+                    <button
+                        onClick={() => {
+                            setShowMobileChat(false)
+                            setShowMobilePreview(true)
+                        }}
+                        className={`flex-1 py-3 flex items-center justify-center gap-2 transition-all ${
+                            showMobilePreview ? 'bg-purple-600 text-white' : 'text-zinc-400'
+                        }`}>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        <span className="text-sm font-medium">Preview</span>
+                    </button>
+                )}
+            </div>
+
+            {/* Chat Sidebar */}
+            <section className={`${showMobileChat ? 'flex' : 'hidden'} md:flex flex-col h-screen w-full md:w-[380px] lg:w-[420px] bg-gradient-to-b from-[#7c3aed] to-[#5b21b6] shadow-2xl pb-14 md:pb-0`}>
+                {/* Header */}
+                <header className='flex justify-between items-center p-3 md:p-5 backdrop-blur-xl bg-white/10 border-b border-white/20'>
+                    <div className="flex items-center gap-2 md:gap-3">
                         <button 
                             onClick={() => navigate('/')}
-                            className="p-2 hover:bg-white/10 rounded-xl transition-all duration-200 group">
-                            <svg className="w-5 h-5 text-white group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            className="p-1.5 md:p-2 hover:bg-white/10 rounded-xl transition-all duration-200 group">
+                            <svg className="w-4 h-4 md:w-5 md:h-5 text-white group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                             </svg>
                         </button>
                         <div className="flex items-center gap-2">
-                            <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
-                            <h1 className='font-bold text-lg text-white drop-shadow-lg'>{project.name}</h1>
+                            <div className="w-2 h-2 md:w-2.5 md:h-2.5 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
+                            <h1 className='font-bold text-base md:text-lg text-white drop-shadow-lg truncate max-w-[150px] md:max-w-none'>{project.name}</h1>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 md:gap-2">
                         <button 
                             onClick={() => setIsModalOpen(true)}
-                            className='p-2.5 hover:bg-white/10 rounded-xl transition-all duration-200 group'>
-                            <svg className="w-5 h-5 text-white group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            className='p-1.5 md:p-2.5 hover:bg-white/10 rounded-xl transition-all duration-200 group'>
+                            <svg className="w-4 h-4 md:w-5 md:h-5 text-white group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                             </svg>
                         </button>
                         <button 
                             onClick={() => setIsSidePanelOpen(!isSidePanelOpen)} 
-                            className='p-2.5 hover:bg-white/10 rounded-xl transition-all duration-200 group'>
-                            <svg className="w-5 h-5 text-white group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            className='p-1.5 md:p-2.5 hover:bg-white/10 rounded-xl transition-all duration-200 group'>
+                            <svg className="w-4 h-4 md:w-5 md:h-5 text-white group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                             </svg>
                         </button>
                     </div>
                 </header>
 
-                {/* Messages - CHAT BUBBLE DESIGN */}
-                <div className="flex-grow overflow-y-auto p-5 space-y-4 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent" ref={messageBox}>
+                {/* Messages */}
+                <div className="flex-grow overflow-y-auto p-3 md:p-5 space-y-3 md:space-y-4 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent" ref={messageBox}>
                     {messages.map((msg, index) => (
                         <div key={index} className={`flex ${msg.sender._id == user._id.toString() ? 'justify-end' : 'justify-start'} animate-fadeIn`}>
                             <div className={`max-w-[85%] ${msg.sender._id === 'ai' ? 'max-w-[95%]' : ''}`}>
-                                {/* User Messages - Right Side */}
                                 {msg.sender._id == user._id.toString() ? (
                                     <div className="flex flex-col items-end gap-1">
-                                        <div className="bg-white text-gray-800 rounded-2xl rounded-tr-sm px-5 py-3 shadow-lg">
-                                            <p className="text-[15px] leading-relaxed">{msg.message}</p>
+                                        <div className="bg-white text-gray-800 rounded-2xl rounded-tr-sm px-3 md:px-5 py-2 md:py-3 shadow-lg">
+                                            <p className="text-sm md:text-[15px] leading-relaxed break-words">{msg.message}</p>
                                         </div>
                                         <span className="text-xs text-white/70 px-2">You</span>
                                     </div>
                                 ) : msg.sender._id === 'ai' ? (
-                                    /* AI Messages - Left Side with Special Styling */
                                     <div className="flex flex-col gap-2">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center shadow-lg">
-                                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center shadow-lg">
+                                                <svg className="w-3 h-3 md:w-4 md:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                                 </svg>
                                             </div>
                                             <span className="text-xs font-semibold text-white/90">AI Assistant</span>
                                         </div>
-                                        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl rounded-tl-sm px-5 py-4 shadow-xl">
+                                        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl rounded-tl-sm px-3 md:px-5 py-3 md:py-4 shadow-xl">
                                             {msg.error ? (
-                                                <p className="text-red-300 text-[15px]">{msg.message}</p>
+                                                <p className="text-red-300 text-sm md:text-[15px]">{msg.message}</p>
                                             ) : (
-                                                <div className="text-[15px] leading-relaxed text-white">
+                                                <div className="text-sm md:text-[15px] leading-relaxed text-white">
                                                     {WriteAiMessage(msg.message)}
                                                 </div>
                                             )}
                                         </div>
                                     </div>
                                 ) : (
-                                    /* Other Users Messages - Left Side */
                                     <div className="flex flex-col gap-1">
                                         <div className="flex items-center gap-2 px-2">
-                                            <div className='w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold text-white border-2 border-white/30'>
+                                            <div className='w-5 h-5 md:w-6 md:h-6 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold text-white border-2 border-white/30'>
                                                 {msg.sender.email?.charAt(0).toUpperCase()}
                                             </div>
-                                            <span className="text-xs text-white/70">{msg.sender.email}</span>
+                                            <span className="text-xs text-white/70 truncate max-w-[150px]">{msg.sender.email}</span>
                                         </div>
-                                        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl rounded-tl-sm px-5 py-3 shadow-lg">
-                                            <p className="text-[15px] leading-relaxed text-white">{msg.message}</p>
+                                        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl rounded-tl-sm px-3 md:px-5 py-2 md:py-3 shadow-lg">
+                                            <p className="text-sm md:text-[15px] leading-relaxed text-white break-words">{msg.message}</p>
                                         </div>
                                     </div>
                                 )}
@@ -248,19 +293,18 @@ const Project = () => {
                         </div>
                     ))}
                     
-                    {/* AI Typing Indicator */}
                     {isAiTyping && (
                         <div className="flex justify-start animate-fadeIn">
                             <div className="flex flex-col gap-2">
                                 <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center shadow-lg animate-pulse">
-                                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center shadow-lg animate-pulse">
+                                        <svg className="w-3 h-3 md:w-4 md:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                         </svg>
                                     </div>
                                     <span className="text-xs font-semibold text-white/90">AI Assistant</span>
                                 </div>
-                                <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl rounded-tl-sm px-5 py-4 shadow-xl">
+                                <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl rounded-tl-sm px-3 md:px-5 py-3 md:py-4 shadow-xl">
                                     <div className="flex items-center gap-2">
                                         <div className="flex gap-1">
                                             <div className="w-2 h-2 bg-white/70 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
@@ -275,8 +319,8 @@ const Project = () => {
                     )}
                 </div>
 
-                {/* Input Area - MODERN DESIGN */}
-                <div className="p-4 backdrop-blur-xl bg-white/10 border-t border-white/20">
+                {/* Input Area */}
+                <div className="p-3 md:p-4 backdrop-blur-xl bg-white/10 border-t border-white/20">
                     <div className="flex gap-2">
                         <input 
                             onKeyDown={(e) => {
@@ -289,25 +333,25 @@ const Project = () => {
                             onChange={(e) => setMessage(e.target.value)}
                             type="text"
                             placeholder="Type your message..."
-                            className='flex-grow px-5 py-3.5 bg-white/20 backdrop-blur-xl border border-white/30 rounded-2xl outline-none focus:ring-2 focus:ring-white/50 text-white placeholder-white/60 transition-all duration-200' />
+                            className='flex-grow px-3 md:px-5 py-2.5 md:py-3.5 bg-white/20 backdrop-blur-xl border border-white/30 rounded-2xl outline-none focus:ring-2 focus:ring-white/50 text-white placeholder-white/60 transition-all duration-200 text-sm md:text-base' />
                         <button
                             onClick={send}
                             disabled={!message.trim()}
-                            className='px-6 py-3.5 bg-white text-purple-600 rounded-2xl hover:bg-white/90 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg hover:shadow-xl font-semibold disabled:hover:bg-white group'>
-                            <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            className='px-4 md:px-6 py-2.5 md:py-3.5 bg-white text-purple-600 rounded-2xl hover:bg-white/90 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white flex items-center gap-2 shadow-lg hover:shadow-xl font-semibold group'>
+                            <svg className="w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                             </svg>
                         </button>
                     </div>
-                    <p className="text-xs text-white/60 mt-3 px-1">
-                        💡 <span className="font-medium ">Tip:</span> Use "@ai" to interact with ai model and shift+enter for new line
+                    <p className="text-xs text-white/60 mt-2 md:mt-3 px-1">
+                        💡 <span className="font-medium">Tip:</span> Use "@ai" to interact with AI
                     </p>
                 </div>
 
                 {/* Collaborators Panel */}
                 <div className={`absolute inset-0 bg-gradient-to-b from-[#7c3aed] to-[#5b21b6] transform transition-transform duration-300 ${isSidePanelOpen ? 'translate-x-0' : '-translate-x-full'} z-10`}>
-                    <header className='flex justify-between items-center p-5 backdrop-blur-xl bg-white/10 border-b border-white/20'>
-                        <h1 className='font-bold text-lg text-white'>Collaborators</h1>
+                    <header className='flex justify-between items-center p-3 md:p-5 backdrop-blur-xl bg-white/10 border-b border-white/20'>
+                        <h1 className='font-bold text-base md:text-lg text-white'>Collaborators</h1>
                         <button 
                             onClick={() => setIsSidePanelOpen(!isSidePanelOpen)} 
                             className='p-2 hover:bg-white/10 rounded-xl transition-all'>
@@ -316,14 +360,14 @@ const Project = () => {
                             </svg>
                         </button>
                     </header>
-                    <div className="p-4 space-y-3">
+                    <div className="p-3 md:p-4 space-y-2 md:space-y-3 overflow-auto max-h-[calc(100vh-100px)]">
                         {project.users && project.users.map(user => (
-                            <div key={user._id} className="flex items-center gap-3 p-4 hover:bg-white/10 rounded-2xl cursor-pointer transition-all duration-200 backdrop-blur-xl border border-white/10">
-                                <div className='w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-lg border-2 border-white/30'>
+                            <div key={user._id} className="flex items-center gap-3 p-3 md:p-4 hover:bg-white/10 rounded-2xl cursor-pointer transition-all duration-200 backdrop-blur-xl border border-white/10">
+                                <div className='w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-base md:text-lg border-2 border-white/30'>
                                     {user.email?.charAt(0).toUpperCase()}
                                 </div>
-                                <div>
-                                    <h1 className='font-semibold text-white'>{user.email}</h1>
+                                <div className="flex-1 min-w-0">
+                                    <h1 className='font-semibold text-white text-sm md:text-base truncate'>{user.email}</h1>
                                     <p className="text-xs text-white/60 flex items-center gap-1">
                                         <span className="w-2 h-2 bg-green-400 rounded-full"></span>
                                         Active now
@@ -335,34 +379,33 @@ const Project = () => {
                 </div>
             </section>
 
-            {/* Code Editor Section - PREMIUM VS CODE STYLE */}
-            <section className="flex-grow flex flex-col h-full bg-[#1e1e1e]">
-                <div className="flex flex-grow overflow-hidden">
-                    {/* File Tree - MODERN SIDEBAR */}
-                    <div className="w-72 bg-[#252526] border-r border-[#3e3e42] overflow-auto">
-                        <div className="p-4 border-b border-[#3e3e42] bg-[#2d2d30]">
-                            <h2 className="font-bold text-sm text-[#cccccc] uppercase tracking-wider flex items-center gap-2">
+            {/* Code Editor Section */}
+            <section className={`${!showMobileChat && !showMobilePreview ? 'flex' : 'hidden'} md:flex flex-col flex-grow h-screen bg-[#1e1e1e] pb-14 md:pb-0`}>
+                <div className="flex flex-grow overflow-hidden flex-col md:flex-row">
+                    {/* File Tree */}
+                    <div className="hidden md:block w-48 lg:w-72 bg-[#252526] border-r border-[#3e3e42] overflow-auto">
+                        <div className="p-3 md:p-4 border-b border-[#3e3e42] bg-[#2d2d30]">
+                            <h2 className="font-bold text-xs md:text-sm text-[#cccccc] uppercase tracking-wider flex items-center gap-2">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                                 </svg>
-                                Explorer
+                                <span className="hidden lg:inline">Explorer</span>
                             </h2>
                         </div>
                         <div className="p-2">
                             {Object.keys(fileTree).length === 0 ? (
-                                <div className="text-center py-12">
-                                    <svg className="w-16 h-16 mx-auto mb-3 text-[#6e6e6e]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div className="text-center py-8 md:py-12 px-2">
+                                    <svg className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-2 md:mb-3 text-[#6e6e6e]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                                     </svg>
-                                    <p className="text-sm text-[#8c8c8c]">No files yet</p>
-                                    <p className="text-xs text-[#6e6e6e] mt-1">Ask AI to create files</p>
+                                    <p className="text-xs md:text-sm text-[#8c8c8c]">No files yet</p>
+                                    <p className="text-xs text-[#6e6e6e] mt-1 hidden lg:block">Ask AI to create files</p>
                                 </div>
                             ) : (
                                 Object.keys(fileTree).map((file, index) => {
                                     const isActive = currentFile === file
                                     const extension = file.split('.').pop()
                                     
-                                    // File icon and color based on extension
                                     const getFileIcon = () => {
                                         switch(extension) {
                                             case 'js':
@@ -390,12 +433,12 @@ const Project = () => {
                                                 setCurrentFile(file)
                                                 setOpenFiles([...new Set([...openFiles, file])])
                                             }}
-                                            className={`w-full text-left px-3 py-2.5 text-[13px] rounded-lg transition-all duration-150 flex items-center gap-3 group ${
+                                            className={`w-full text-left px-2 md:px-3 py-2 md:py-2.5 text-xs md:text-[13px] rounded-lg transition-all duration-150 flex items-center gap-2 md:gap-3 group ${
                                                 isActive 
                                                     ? 'bg-[#37373d] text-white border-l-2 border-[#007acc]' 
                                                     : 'text-[#cccccc] hover:bg-[#2a2d2e]'
                                             }`}>
-                                            <span className={`text-base ${fileInfo.color}`}>{fileInfo.icon}</span>
+                                            <span className={`text-sm md:text-base ${fileInfo.color}`}>{fileInfo.icon}</span>
                                             <span className="truncate flex-grow">{file}</span>
                                             {isActive && (
                                                 <div className="w-1.5 h-1.5 rounded-full bg-[#007acc]"></div>
@@ -407,71 +450,73 @@ const Project = () => {
                         </div>
                     </div>
 
-                    {/* Code Editor - PREMIUM STYLING */}
-                    <div className="flex-grow flex flex-col bg-[#1e1e1e]">
-                        {/* Open Files Tabs - MODERN TABS */}
-                        <div className="flex items-center gap-0 bg-[#2d2d30] border-b border-[#3e3e42] overflow-x-auto scrollbar-thin scrollbar-thumb-gray scrollbar-track-transparent">
-                            {openFiles.length === 0 ? (
-                                <div className="px-4 py-3 text-sm text-[#8c8c8c] flex items-center gap-2">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                    No files open
-                                </div>
-                            ) : (
-                                openFiles.map((file, index) => {
-                                    const extension = file.split('.').pop()
-                                    const getFileIcon = () => {
-                                        switch(extension) {
-                                            case 'js':
-                                            case 'jsx':
-                                                return '⚛'
-                                            case 'json':
-                                                return '{}'
-                                            case 'css':
-                                                return '#'
-                                            case 'html':
-                                                return '<>'
-                                            default:
-                                                return '📄'
+                    {/* Main Editor Area */}
+                    <div className="flex-grow flex flex-col bg-[#1e1e1e] overflow-hidden">
+                        {/* Tabs & Actions Bar */}
+                        <div className="flex items-center gap-0 bg-[#2d2d30] border-b border-[#3e3e42] overflow-x-auto scrollbar-thin scrollbar-thumb-gray scrollbar-track-transparent flex-shrink-0">
+                            <div className="flex items-center overflow-x-auto flex-grow">
+                                {openFiles.length === 0 ? (
+                                    <div className="px-3 md:px-4 py-2 md:py-3 text-xs md:text-sm text-[#8c8c8c] flex items-center gap-2 whitespace-nowrap">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        No files open
+                                    </div>
+                                ) : (
+                                    openFiles.map((file, index) => {
+                                        const extension = file.split('.').pop()
+                                        const getFileIcon = () => {
+                                            switch(extension) {
+                                                case 'js':
+                                                case 'jsx':
+                                                    return '⚛'
+                                                case 'json':
+                                                    return '{}'
+                                                case 'css':
+                                                    return '#'
+                                                case 'html':
+                                                    return '<>'
+                                                default:
+                                                    return '📄'
+                                            }
                                         }
-                                    }
-                                    
-                                    return (
-                                        <div
-                                            key={index}
-                                            className={`relative flex items-center gap-2 px-5 py-3 text-[13px] border-r border-[#3e3e42] transition-all cursor-pointer group ${
-                                                currentFile === file 
-                                                    ? 'bg-[#1e1e1e] text-white' 
-                                                    : 'text-[#969696] hover:bg-[#37373d] hover:text-white'
-                                            }`}
-                                            onClick={() => setCurrentFile(file)}>
-                                            <span>{getFileIcon()}</span>
-                                            <span className="truncate max-w-[150px] font-medium">{file}</span>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    const newOpenFiles = openFiles.filter(f => f !== file)
-                                                    setOpenFiles(newOpenFiles)
-                                                    if (currentFile === file && newOpenFiles.length > 0) {
-                                                        setCurrentFile(newOpenFiles[0])
-                                                    } else if (newOpenFiles.length === 0) {
-                                                        setCurrentFile(null)
-                                                    }
-                                                }}
-                                                className="opacity-0 group-hover:opacity-100 hover:bg-[#505050] rounded p-1 transition-all">
-                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                            </button>
-                                            {currentFile === file && (
-                                                <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#007acc]"></div>
-                                            )}
-                                        </div>
-                                    )
-                                })
-                            )}
-                            <div className="ml-auto flex items-center gap-2 px-4">
+                                        
+                                        return (
+                                            <div
+                                                key={index}
+                                                className={`relative flex items-center gap-2 px-3 md:px-5 py-2 md:py-3 text-xs md:text-[13px] border-r border-[#3e3e42] transition-all cursor-pointer group whitespace-nowrap ${
+                                                    currentFile === file 
+                                                        ? 'bg-[#1e1e1e] text-white' 
+                                                        : 'text-[#969696] hover:bg-[#37373d] hover:text-white'
+                                                }`}
+                                                onClick={() => setCurrentFile(file)}>
+                                                <span>{getFileIcon()}</span>
+                                                <span className="truncate max-w-[100px] md:max-w-[150px] font-medium">{file}</span>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        const newOpenFiles = openFiles.filter(f => f !== file)
+                                                        setOpenFiles(newOpenFiles)
+                                                        if (currentFile === file && newOpenFiles.length > 0) {
+                                                            setCurrentFile(newOpenFiles[0])
+                                                        } else if (newOpenFiles.length === 0) {
+                                                            setCurrentFile(null)
+                                                        }
+                                                    }}
+                                                    className="opacity-0 group-hover:opacity-100 hover:bg-[#505050] rounded p-1 transition-all">
+                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                </button>
+                                                {currentFile === file && (
+                                                    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#007acc]"></div>
+                                                )}
+                                            </div>
+                                        )
+                                    })
+                                )}
+                            </div>
+                            <div className="flex items-center gap-2 px-2 md:px-4 border-l border-[#3e3e42] flex-shrink-0">
                                 <button
                                     onClick={async () => {
                                         if (!webContainer) {
@@ -492,23 +537,24 @@ const Project = () => {
                                         webContainer.on('server-ready', (port, url) => {
                                             console.log(port, url)
                                             setIframeUrl(url)
+                                            setShowMobilePreview(true)
                                         })
                                     }}
-                                    className='px-5 py-2 bg-[#0e639c] text-white text-sm rounded-lg hover:bg-[#1177bb] transition-all duration-200 flex items-center gap-2 font-medium shadow-lg'>
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    className='px-3 md:px-5 py-1.5 md:py-2 bg-[#0e639c] text-white text-xs md:text-sm rounded-lg hover:bg-[#1177bb] transition-all duration-200 flex items-center gap-2 font-medium shadow-lg whitespace-nowrap'>
+                                    <svg className="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    Run Project
+                                    <span className="hidden sm:inline">Run</span>
                                 </button>
                             </div>
                         </div>
 
-                        {/* Editor Area - ENHANCED CODE VIEW */}
+                        {/* Editor Content */}
                         <div className="flex-grow overflow-auto bg-[#1e1e1e]">
                             {fileTree[currentFile] ? (
                                 <div className="h-full">
-                                    <pre className="hljs h-full p-6 m-0" style={{background: '#1e1e1e', fontSize: '14px', lineHeight: '1.6'}}>
+                                    <pre className="hljs h-full p-3 md:p-6 m-0" style={{background: '#1e1e1e', fontSize: '13px', lineHeight: '1.6'}}>
                                         <code
                                             className="hljs h-full outline-none font-mono"
                                             contentEditable
@@ -536,7 +582,7 @@ const Project = () => {
                                             }}
                                             style={{
                                                 whiteSpace: 'pre-wrap',
-                                                paddingBottom: '25rem',
+                                                paddingBottom: '10rem',
                                                 color: '#d4d4d4',
                                                 background: '#1e1e1e'
                                             }}
@@ -544,22 +590,22 @@ const Project = () => {
                                     </pre>
                                 </div>
                             ) : (
-                                <div className="h-full flex items-center justify-center text-[#8c8c8c]">
+                                <div className="h-full flex items-center justify-center text-[#8c8c8c] p-4">
                                     <div className="text-center">
-                                        <svg className="w-20 h-20 mx-auto mb-4 text-[#6e6e6e]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg className="w-16 h-16 md:w-20 md:h-20 mx-auto mb-3 md:mb-4 text-[#6e6e6e]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                                         </svg>
-                                        <p className="text-lg font-medium text-[#cccccc] mb-2">Ready to code</p>
-                                        <p className="text-sm text-[#8c8c8c]">Select a file from the explorer or ask AI to create one</p>
+                                        <p className="text-base md:text-lg font-medium text-[#cccccc] mb-2">Ready to code</p>
+                                        <p className="text-xs md:text-sm text-[#8c8c8c] max-w-[250px] mx-auto">Select a file from the explorer or ask AI to create one</p>
                                     </div>
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    {/* Preview - BROWSER STYLE */}
+                    {/* Desktop Preview */}
                     {iframeUrl && webContainer && (
-                        <div className="w-[480px] flex flex-col border-l border-[#3e3e42] bg-[#252526]">
+                        <div className="hidden lg:flex w-[400px] xl:w-[480px] flex-col border-l border-[#3e3e42] bg-[#252526]">
                             <div className="bg-[#2d2d30] border-b border-[#3e3e42] p-3 flex items-center gap-3">
                                 <div className="flex gap-2">
                                     <div className="w-3 h-3 rounded-full bg-[#ff5f56] hover:bg-[#ff5f56]/80 cursor-pointer"></div>
@@ -570,7 +616,7 @@ const Project = () => {
                                     type="text"
                                     onChange={(e) => setIframeUrl(e.target.value)}
                                     value={iframeUrl} 
-                                    className="flex-1 px-4 py-2 bg-[#3c3c3c] border border-[#505050] rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#007acc] text-[#cccccc] font-mono" 
+                                    className="flex-1 px-3 md:px-4 py-1.5 md:py-2 bg-[#3c3c3c] border border-[#505050] rounded-lg text-xs md:text-sm outline-none focus:ring-2 focus:ring-[#007acc] text-[#cccccc] font-mono" 
                                     placeholder="http://localhost:3000"
                                 />
                                 <button 
@@ -590,57 +636,87 @@ const Project = () => {
                 </div>
             </section>
 
-            {/* Add Collaborator Modal - PREMIUM DESIGN */}
+            {/* Mobile Preview */}
+            {showMobilePreview && iframeUrl && (
+                <div className="md:hidden flex flex-col h-screen bg-[#252526] pb-14">
+                    <div className="bg-[#2d2d30] border-b border-[#3e3e42] p-3 flex items-center gap-2">
+                        <div className="flex gap-1.5">
+                            <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]"></div>
+                            <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]"></div>
+                            <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]"></div>
+                        </div>
+                        <input 
+                            type="text"
+                            onChange={(e) => setIframeUrl(e.target.value)}
+                            value={iframeUrl} 
+                            className="flex-1 px-3 py-1.5 bg-[#3c3c3c] border border-[#505050] rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#007acc] text-[#cccccc] font-mono" 
+                        />
+                        <button 
+                            onClick={() => {
+                                const iframe = document.querySelector('iframe')
+                                if (iframe) iframe.src = iframe.src
+                            }}
+                            className="p-2 hover:bg-[#3c3c3c] rounded-lg transition-colors">
+                            <svg className="w-4 h-4 text-[#cccccc]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </button>
+                    </div>
+                    <iframe src={iframeUrl} className="flex-grow w-full bg-white"></iframe>
+                </div>
+            )}
+
+            {/* Add Collaborator Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
-                    <div className="bg-[#2d2d30] rounded-3xl w-full max-w-md shadow-2xl border border-[#3e3e42] animate-scaleIn">
-                        <header className='flex justify-between items-center p-6 border-b border-[#3e3e42]'>
-                            <h2 className='text-2xl font-bold text-white flex items-center gap-3'>
-                                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="bg-[#2d2d30] rounded-2xl md:rounded-3xl w-full max-w-md shadow-2xl border border-[#3e3e42] animate-scaleIn max-h-[90vh] overflow-hidden flex flex-col">
+                        <header className='flex justify-between items-center p-4 md:p-6 border-b border-[#3e3e42] flex-shrink-0'>
+                            <h2 className='text-xl md:text-2xl font-bold text-white flex items-center gap-2 md:gap-3'>
+                                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl md:rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                                    <svg className="w-4 h-4 md:w-5 md:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                                     </svg>
                                 </div>
-                                Add Collaborator
+                                <span className="text-base md:text-2xl">Add Collaborator</span>
                             </h2>
                             <button 
                                 onClick={() => setIsModalOpen(false)} 
-                                className='p-2.5 hover:bg-[#3c3c3c] rounded-xl transition-all'>
-                                <svg className="w-6 h-6 text-[#cccccc]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                className='p-2 md:p-2.5 hover:bg-[#3c3c3c] rounded-xl transition-all'>
+                                <svg className="w-5 h-5 md:w-6 md:h-6 text-[#cccccc]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </header>
-                        <div className="p-6 max-h-96 overflow-auto space-y-2 scrollbar-thin scrollbar-thumb-gray scrollbar-track-transparent">
+                        <div className="p-4 md:p-6 overflow-auto space-y-2 scrollbar-thin scrollbar-thumb-gray scrollbar-track-transparent flex-grow">
                             {users.map(user => (
                                 <div 
                                     key={user._id} 
-                                    className={`flex items-center gap-4 p-4 rounded-2xl cursor-pointer transition-all duration-200 ${
+                                    className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl md:rounded-2xl cursor-pointer transition-all duration-200 ${
                                         Array.from(selectedUserId).indexOf(user._id) != -1 
                                             ? 'bg-gradient-to-r from-purple-600/30 to-pink-600/30 border-2 border-purple-500 shadow-lg shadow-purple-500/20' 
                                             : 'hover:bg-[#3c3c3c] border-2 border-transparent'
                                     }`} 
                                     onClick={() => handleUserClick(user._id)}>
-                                    <div className='w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg shadow-lg'>
+                                    <div className='w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-base md:text-lg shadow-lg flex-shrink-0'>
                                         {user.email?.charAt(0).toUpperCase()}
                                     </div>
-                                    <div className="flex-grow">
-                                        <span className='font-semibold text-white'>{user.email}</span>
+                                    <div className="flex-grow min-w-0">
+                                        <span className='font-semibold text-white text-sm md:text-base truncate block'>{user.email}</span>
                                         <p className="text-xs text-[#8c8c8c]">Developer</p>
                                     </div>
                                     {Array.from(selectedUserId).indexOf(user._id) != -1 && (
-                                        <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg className="w-5 h-5 md:w-6 md:h-6 text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                                         </svg>
                                     )}
                                 </div>
                             ))}
                         </div>
-                        <div className="p-6 border-t border-[#3e3e42]">
+                        <div className="p-4 md:p-6 border-t border-[#3e3e42] flex-shrink-0">
                             <button
                                 onClick={addCollaborators}
                                 disabled={selectedUserId.size === 0}
-                                className='w-full px-4 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl font-bold hover:from-purple-500 hover:to-pink-500 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-purple-600 disabled:hover:to-pink-600'>
+                                className='w-full px-4 py-3 md:py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl md:rounded-2xl font-bold hover:from-purple-500 hover:to-pink-500 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-purple-600 disabled:hover:to-pink-600 text-sm md:text-base'>
                                 Add {selectedUserId.size > 0 ? selectedUserId.size : ''} Collaborator{selectedUserId.size !== 1 ? 's' : ''}
                             </button>
                         </div>
@@ -679,7 +755,6 @@ const Project = () => {
                     animation: scaleIn 0.3s ease-out;
                 }
 
-                /* Custom Scrollbar */
                 .scrollbar-thin::-webkit-scrollbar {
                     width: 8px;
                     height: 8px;
@@ -705,6 +780,5 @@ const Project = () => {
         </main>
     )
 }
-
 
 export default Project
