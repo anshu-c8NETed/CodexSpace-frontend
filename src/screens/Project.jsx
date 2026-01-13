@@ -482,29 +482,82 @@ server.listen(PORT, () => {
     }
 
     function addCollaborators() {
-        setInvitationLoading(true)
-        const invitationPromises = Array.from(selectedUserId).map(userId => 
-            axios.post("/invitations/send", {
-                projectId: location.state.project._id,
-                recipientId: userId
-            })
-        )
-
-        Promise.all(invitationPromises)
-            .then(responses => {
-                alert(`Successfully sent ${selectedUserId.size} invitation${selectedUserId.size !== 1 ? 's' : ''}!`)
-                setSelectedUserId(new Set())
-                setIsModalOpen(false)
-                fetchSentInvitations()
-            })
-            .catch(err => {
-                console.error('Error sending invitations:', err)
-                alert(err.response?.data?.error || 'Failed to send invitations')
-            })
-            .finally(() => {
-                setInvitationLoading(false)
-            })
+    if (selectedUserId.size === 0) {
+        alert('Please select at least one user');
+        return;
     }
+
+    setInvitationLoading(true);
+    
+    console.log('📤 Sending invitations...');
+    console.log('Project ID:', location.state.project._id);
+    console.log('Selected User IDs:', Array.from(selectedUserId));
+    console.log('API Base URL:', import.meta.env.VITE_API_URL);
+    console.log('Token exists:', !!localStorage.getItem('token'));
+    
+    const invitationPromises = Array.from(selectedUserId).map(userId => {
+        console.log(`Sending invitation to user: ${userId}`);
+        return axios.post("/invitations/send", {
+            projectId: location.state.project._id,
+            recipientId: userId
+        });
+    });
+
+    Promise.all(invitationPromises)
+        .then(responses => {
+            console.log('✅ Success responses:', responses);
+            alert(`Successfully sent ${selectedUserId.size} invitation${selectedUserId.size !== 1 ? 's' : ''}!`);
+            setSelectedUserId(new Set());
+            setIsModalOpen(false);
+            fetchSentInvitations();
+        })
+        .catch(err => {
+            console.error('❌ Full error object:', err);
+            
+            let errorMessage = 'Failed to send invitations';
+            
+            if (err.response) {
+                // The request was made and the server responded with a status code
+                // that falls out of the range of 2xx
+                console.error('Response error data:', err.response.data);
+                console.error('Response status:', err.response.status);
+                console.error('Response headers:', err.response.headers);
+                
+                errorMessage = err.response.data?.message || 
+                              err.response.data?.error || 
+                              `Server error: ${err.response.status}`;
+                
+                if (err.response.status === 401) {
+                    errorMessage = 'Authentication failed. Please login again.';
+                    // Optionally redirect to login
+                    // navigate('/login');
+                }
+                if (err.response.status === 403) {
+                    errorMessage = 'You do not have permission to send invitations.';
+                }
+                if (err.response.status === 404) {
+                    errorMessage = 'Project or user not found.';
+                }
+                if (err.response.status === 500) {
+                    errorMessage = 'Server error. Please try again later.';
+                }
+            } else if (err.request) {
+                // The request was made but no response was received
+                console.error('No response received:', err.request);
+                console.error('Request config:', err.config);
+                errorMessage = 'Network error: Could not reach server. Check your internet connection.';
+            } else {
+                // Something happened in setting up the request that triggered an Error
+                console.error('Error setting up request:', err.message);
+                errorMessage = `Error: ${err.message}`;
+            }
+            
+            alert(errorMessage);
+        })
+        .finally(() => {
+            setInvitationLoading(false);
+        });
+}
 
     function fetchSentInvitations() {
         axios.get(`/invitations/sent/${project._id}`)
@@ -1275,3 +1328,4 @@ server.listen(PORT, () => {
 }
 
 export default Project
+
