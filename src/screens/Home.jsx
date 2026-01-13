@@ -12,11 +12,6 @@ const Home = () => {
     const [scrollY, setScrollY] = useState(0)
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
     
-    // Invitation states
-    const [invitations, setInvitations] = useState([])
-    const [isInvitationOpen, setIsInvitationOpen] = useState(false)
-    const [invitationLoading, setInvitationLoading] = useState(false)
-    
     const navigate = useNavigate()
 
     useEffect(() => {
@@ -24,80 +19,6 @@ const Home = () => {
         window.addEventListener('scroll', handleScroll)
         return () => window.removeEventListener('scroll', handleScroll)
     }, [])
-
-    // Fetch invitations
-    const fetchInvitations = async () => {
-        try {
-            const res = await axios.get('/invitations/pending')
-            setInvitations(res.data.invitations)
-        } catch (err) {
-            console.error('Error fetching invitations:', err)
-        }
-    }
-
-    // Accept invitation
-    const handleAcceptInvitation = async (invitationId) => {
-        setInvitationLoading(true)
-        try {
-            const res = await axios.post(`/invitations/accept/${invitationId}`)
-            
-            // Remove from list
-            setInvitations(invitations.filter(inv => inv._id !== invitationId))
-            setIsInvitationOpen(false)
-            
-            // Show success and redirect
-            alert('Invitation accepted! Redirecting to workspace...')
-            setTimeout(() => {
-                navigate('/project', { state: { project: res.data.project } })
-            }, 500)
-        } catch (err) {
-            console.error('Error accepting invitation:', err)
-            alert(err.response?.data?.error || 'Failed to accept invitation')
-        } finally {
-            setInvitationLoading(false)
-        }
-    }
-
-    // Reject invitation
-    const handleRejectInvitation = async (invitationId) => {
-        setInvitationLoading(true)
-        try {
-            await axios.post(`/invitations/reject/${invitationId}`)
-            setInvitations(invitations.filter(inv => inv._id !== invitationId))
-            alert('Invitation rejected')
-        } catch (err) {
-            console.error('Error rejecting invitation:', err)
-            alert(err.response?.data?.error || 'Failed to reject invitation')
-        } finally {
-            setInvitationLoading(false)
-        }
-    }
-
-    useEffect(() => {
-        fetchInvitations();
-        
-        // Faster polling fallback
-        const interval = setInterval(fetchInvitations, 5000);
-        
-        // Initialize socket for notifications
-        const socket = initializeSocket('user-notifications');
-        
-        // Listen for new invitations
-        socket.on('new-invitation', (invitation) => {
-            console.log('📨 New invitation received:', invitation);
-            setInvitations(prev => [invitation, ...prev]);
-        });
-        
-        // Refresh on window focus
-        const handleFocus = () => fetchInvitations();
-        window.addEventListener('focus', handleFocus);
-        
-        return () => {
-            clearInterval(interval);
-            socket.off('new-invitation');
-            window.removeEventListener('focus', handleFocus);
-        };
-    }, []);
 
     function createProject(e) {
         e.preventDefault()
@@ -179,97 +100,6 @@ const Home = () => {
                         </div>
 
                         <div className="flex items-center gap-2 md:gap-3">
-                            {/* FIXED: Responsive Invitation Notification Bell */}
-                            <div className="relative">
-                                <button
-                                    onClick={() => setIsInvitationOpen(!isInvitationOpen)}
-                                    className="relative p-2 hover:bg-zinc-800/50 rounded-xl transition-all duration-200 group">
-                                    <svg className="w-5 h-5 text-zinc-300 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                                    </svg>
-                                    {invitations.length > 0 && (
-                                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center animate-pulse">
-                                            <span className="text-xs text-white font-bold">{invitations.length}</span>
-                                        </div>
-                                    )}
-                                </button>
-
-                                {/* FIXED: Mobile-Responsive Invitation Dropdown */}
-                                {isInvitationOpen && (
-                                    <>
-                                        <div 
-                                            className="fixed inset-0 z-40" 
-                                            onClick={() => setIsInvitationOpen(false)}
-                                        />
-                                        <div className="fixed md:absolute right-4 left-4 md:right-0 md:left-auto top-16 md:top-full md:mt-2 w-auto md:w-96 bg-zinc-900 rounded-2xl border border-zinc-800/50 shadow-2xl z-50 overflow-hidden animate-scaleIn max-w-md mx-auto md:mx-0">
-                                            <div className="p-4 border-b border-zinc-800/50">
-                                                <h3 className="font-bold text-white text-base md:text-lg">Workspace Invitations</h3>
-                                                <p className="text-xs text-zinc-400 mt-1">
-                                                    {invitations.length === 0 
-                                                        ? 'No pending invitations' 
-                                                        : `You have ${invitations.length} pending invitation${invitations.length !== 1 ? 's' : ''}`
-                                                    }
-                                                </p>
-                                            </div>
-                                            
-                                            <div className="max-h-[60vh] md:max-h-96 overflow-y-auto">
-                                                {invitations.length === 0 ? (
-                                                    <div className="p-8 text-center">
-                                                        <svg className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-3 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                                                        </svg>
-                                                        <p className="text-zinc-400 text-sm">All caught up!</p>
-                                                    </div>
-                                                ) : (
-                                                    invitations.map((invitation) => (
-                                                        <div 
-                                                            key={invitation._id} 
-                                                            className="p-4 border-b border-zinc-800/30 hover:bg-zinc-800/30 transition-all">
-                                                            <div className="flex items-start gap-3 mb-3">
-                                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                                                                    {invitation.sender?.email?.charAt(0).toUpperCase()}
-                                                                </div>
-                                                                <div className="flex-grow min-w-0">
-                                                                    <p className="text-sm text-zinc-300">
-                                                                        <span className="font-semibold text-white break-words">{invitation.sender?.email}</span> invited you to join
-                                                                    </p>
-                                                                    <p className="text-sm md:text-base font-bold text-white mt-1 break-words">
-                                                                        {invitation.project?.name}
-                                                                    </p>
-                                                                    <p className="text-xs text-zinc-500 mt-1">
-                                                                        {new Date(invitation.createdAt).toLocaleDateString('en-US', { 
-                                                                            month: 'short', 
-                                                                            day: 'numeric',
-                                                                            hour: '2-digit',
-                                                                            minute: '2-digit'
-                                                                        })}
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                            
-                                                            <div className="flex flex-col sm:flex-row gap-2">
-                                                                <button
-                                                                    onClick={() => handleAcceptInvitation(invitation._id)}
-                                                                    disabled={invitationLoading}
-                                                                    className="flex-1 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-semibold hover:from-green-500 hover:to-emerald-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm">
-                                                                    Accept
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => handleRejectInvitation(invitation._id)}
-                                                                    disabled={invitationLoading}
-                                                                    className="flex-1 px-4 py-2 bg-zinc-800/50 text-zinc-300 rounded-lg font-semibold hover:bg-zinc-700/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm">
-                                                                    Decline
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    ))
-                                                )}
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-
                             {/* Enhanced User Profile Section */}
                             <div className="hidden lg:flex items-center gap-3 px-4 py-2.5 bg-gradient-to-br from-zinc-900/80 to-zinc-900/50 rounded-xl border border-zinc-800/50 backdrop-blur-xl hover:border-amber-600/30 transition-all duration-300 shadow-lg shadow-black/20">
                                 {/* Avatar with gradient ring */}
@@ -743,19 +573,6 @@ const Home = () => {
                 .animate-gradient {
                     background-size: 200% auto;
                     animation: gradient 3s ease infinite;
-                }
-                @keyframes scaleIn {
-                    from {
-                        opacity: 0;
-                        transform: scale(0.95);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: scale(1);
-                    }
-                }
-                .animate-scaleIn {
-                    animation: scaleIn 0.2s ease-out;
                 }
             `}</style>
         </div>
