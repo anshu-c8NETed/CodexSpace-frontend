@@ -42,6 +42,12 @@ const Project = () => {
     const [showMobileChat, setShowMobileChat] = useState(false)
     const [showMobilePreview, setShowMobilePreview] = useState(false)
     const [showMobileSidebar, setShowMobileSidebar] = useState(false)
+
+    // Add these new states:
+    const [searchEmail, setSearchEmail] = useState('')
+    const [searchResults, setSearchResults] = useState([])
+    const [isSearching, setIsSearching] = useState(false)
+    const [searchError, setSearchError] = useState('')
     
     // Editor states
     const [isRunning, setIsRunning] = useState(false)
@@ -554,15 +560,44 @@ server.listen(PORT, () => {
         }
     }
 
-    // Fetch available users
-    const fetchAvailableUsers = async () => {
-        try {
-            const response = await axios.get(`/projects/available-users/${project._id}`)
-            setUsers(response.data.users || [])
-        } catch (error) {
-            console.error('Error fetching available users:', error)
-        }
+// NEW: Search users by email
+const searchUsers = async (email) => {
+    if (!email || email.trim().length < 2) {
+        setSearchResults([])
+        return
     }
+
+    setIsSearching(true)
+    setSearchError('')
+
+    try {
+        const response = await axios.get(`/projects/search-users/${project._id}`, {
+            params: { email: email.trim() }
+        })
+        setSearchResults(response.data.users || [])
+        
+        if (response.data.users.length === 0) {
+            setSearchError('No users found matching that email')
+        }
+    } catch (error) {
+        console.error('Error searching users:', error)
+        setSearchError('Failed to search users')
+        setSearchResults([])
+    } finally {
+        setIsSearching(false)
+    }
+}
+
+// Debounce search - add this new useEffect
+useEffect(() => {
+    const timeoutId = setTimeout(() => {
+        if (searchEmail) {
+            searchUsers(searchEmail)
+        }
+    }, 500)
+
+    return () => clearTimeout(timeoutId)
+}, [searchEmail])
 
     // Initialize WebContainer
     useEffect(() => {
@@ -618,7 +653,6 @@ server.listen(PORT, () => {
             setIsAiTyping(data.isTyping)
         })
 
-        fetchAvailableUsers()
         fetchProjectDetails()
 
         return () => {
@@ -1241,48 +1275,106 @@ server.listen(PORT, () => {
                 </section>
             )}
 
-            {/* Modal - UPDATED for direct user addition */}
-            {isModalOpen && (
-                <div className='fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50'>
-                    <div className='bg-[#2d2d30] rounded-3xl w-full max-w-md shadow-2xl border border-[#3e3e42] max-h-[90vh] overflow-hidden flex flex-col'>
-                        <header className='flex justify-between items-center p-6 border-b border-[#3e3e42]'>
-                            <h2 className='text-2xl font-bold text-white'>Add Collaborators</h2>
-                            <button 
-                                onClick={() => setIsModalOpen(false)} 
-                                className='p-2.5 hover:bg-[#3c3c3c] rounded-xl'>
-                                <svg className='w-6 h-6 text-[#cccccc]' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                    <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
-                                </svg>
-                            </button>
-                        </header>
-                        <div className='p-6 overflow-auto space-y-2 flex-grow'>
-                            {users.map(modalUser => (
-                                <div 
-                                    key={modalUser._id} 
-                                    className={`flex items-center gap-4 p-4 rounded-2xl cursor-pointer ${
-                                        Array.from(selectedUserId).includes(modalUser._id) 
-                                            ? 'bg-purple-600/30 border-2 border-purple-500' 
-                                            : 'hover:bg-[#3c3c3c]'
-                                    }`} 
-                                    onClick={() => handleUserClick(modalUser._id)}>
-                                    <div className='w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg'>
-                                        {modalUser.email?.charAt(0).toUpperCase()}
-                                    </div>
-                                    <span className='text-white truncate'>{modalUser.email}</span>
-                                </div>
-                            ))}
-                        </div>
-                        <div className='p-6 border-t border-[#3e3e42]'>
-                            <button
-                                onClick={addCollaborators}
-                                disabled={selectedUserId.size === 0 || isAddingCollaborators}
-                                className='w-full px-4 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl font-bold hover:from-purple-500 hover:to-pink-500 disabled:opacity-50 disabled:cursor-not-allowed'>
-                                {isAddingCollaborators ? 'Adding...' : `Add ${selectedUserId.size > 0 ? selectedUserId.size : ''} Collaborator${selectedUserId.size !== 1 ? 's' : ''}`}
-                            </button>
-                        </div>
-                    </div>
+{/* Modal - UPDATED with email search */}
+{isModalOpen && (
+    <div className='fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50'>
+        <div className='bg-[#2d2d30] rounded-3xl w-full max-w-md shadow-2xl border border-[#3e3e42] max-h-[90vh] overflow-hidden flex flex-col'>
+            <header className='flex justify-between items-center p-6 border-b border-[#3e3e42]'>
+                <h2 className='text-2xl font-bold text-white'>Add Collaborators</h2>
+                <button 
+                    onClick={() => {
+                        setIsModalOpen(false)
+                        setSearchEmail('')
+                        setSearchResults([])
+                        setSelectedUserId(new Set())
+                        setSearchError('')
+                    }} 
+                    className='p-2.5 hover:bg-[#3c3c3c] rounded-xl'>
+                    <svg className='w-6 h-6 text-[#cccccc]' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
+                    </svg>
+                </button>
+            </header>
+
+            {/* Search Input */}
+            <div className='p-6 border-b border-[#3e3e42]'>
+                <label className='block text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-2'>
+                    Search by Email
+                </label>
+                <div className='relative'>
+                    <input
+                        type='email'
+                        value={searchEmail}
+                        onChange={(e) => {
+                            setSearchEmail(e.target.value)
+                            setSearchError('')
+                        }}
+                        placeholder='Enter email address...'
+                        className='w-full px-4 py-3 pl-10 bg-zinc-800/50 border border-zinc-700/50 rounded-xl text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-purple-600/50 transition-all'
+                    />
+                    <svg className='w-5 h-5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' />
+                    </svg>
+                    {isSearching && (
+                        <svg className='animate-spin w-5 h-5 text-purple-600 absolute right-3 top-1/2 -translate-y-1/2' fill='none' viewBox='0 0 24 24'>
+                            <circle className='opacity-25' cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='4'></circle>
+                            <path className='opacity-75' fill='currentColor' d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'></path>
+                        </svg>
+                    )}
                 </div>
-            )}
+                <p className='text-xs text-zinc-500 mt-2'>
+                    Type at least 2 characters to search
+                </p>
+            </div>
+
+            {/* Search Results */}
+            <div className='p-6 overflow-auto space-y-2 flex-grow'>
+                {searchError && (
+                    <div className='flex items-center gap-2 p-3 bg-zinc-800/50 rounded-xl text-zinc-400 text-sm'>
+                        <svg className='w-5 h-5 flex-shrink-0' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' />
+                        </svg>
+                        {searchError}
+                    </div>
+                )}
+
+                {!searchEmail && !searchError && (
+                    <div className='text-center py-12'>
+                        <svg className='w-16 h-16 mx-auto mb-4 text-zinc-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={1.5} d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' />
+                        </svg>
+                        <p className='text-zinc-500 text-sm'>Search for users by email</p>
+                    </div>
+                )}
+
+                {searchResults.length > 0 && searchResults.map(modalUser => (
+                    <div 
+                        key={modalUser._id} 
+                        className={`flex items-center gap-4 p-4 rounded-2xl cursor-pointer ${
+                            Array.from(selectedUserId).includes(modalUser._id) 
+                                ? 'bg-purple-600/30 border-2 border-purple-500' 
+                                : 'hover:bg-[#3c3c3c]'
+                        }`} 
+                        onClick={() => handleUserClick(modalUser._id)}>
+                        <div className='w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg'>
+                            {modalUser.email?.charAt(0).toUpperCase()}
+                        </div>
+                        <span className='text-white truncate'>{modalUser.email}</span>
+                    </div>
+                ))}
+            </div>
+
+            <div className='p-6 border-t border-[#3e3e42]'>
+                <button
+                    onClick={addCollaborators}
+                    disabled={selectedUserId.size === 0 || isAddingCollaborators}
+                    className='w-full px-4 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl font-bold hover:from-purple-500 hover:to-pink-500 disabled:opacity-50 disabled:cursor-not-allowed'>
+                    {isAddingCollaborators ? 'Adding...' : `Add ${selectedUserId.size > 0 ? selectedUserId.size : ''} Collaborator${selectedUserId.size !== 1 ? 's' : ''}`}
+                </button>
+            </div>
+        </div>
+    </div>
+)}
 
             <style dangerouslySetInnerHTML={{__html: `
                 @keyframes fadeIn {
