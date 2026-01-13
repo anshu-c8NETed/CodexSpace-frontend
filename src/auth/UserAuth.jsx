@@ -1,43 +1,38 @@
-import React, { useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { UserContext } from '../context/user.context'
 
 const UserAuth = ({ children }) => {
-    const [loading, setLoading] = useState(true)
+
+    const { user } = useContext(UserContext)
+    const [ loading, setLoading ] = useState(true)
+    const token = localStorage.getItem('token')
     const navigate = useNavigate()
 
     useEffect(() => {
-        console.log('UserAuth mounted')
-        
-        const token = localStorage.getItem('token')
-        
-        if (!token) {
-            console.log('No token - redirecting')
-            navigate('/login', { replace: true })
-        } else {
-            console.log('Token found - showing content')
-            setTimeout(() => {
-                setLoading(false)
-            }, 100)
+        if (user) {
+            setLoading(false)
         }
-    }, [navigate])
+
+        if (!token) {
+            navigate('/login')
+        }
+
+        if (!user) {
+            navigate('/login')
+        }
+
+    }, [])
 
     if (loading) {
-        return (
-            <div style={{ 
-                minHeight: '100vh', 
-                background: '#09090b', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                color: 'white'
-            }}>
-                <p>Loading...</p>
-            </div>
-        )
+        return <div>Loading...</div>
     }
 
-    console.log('UserAuth rendering children')
-    return <>{children}</>
+
+    return (
+        <>
+            {children}</>
+    )
 }
 
 export default UserAuth
