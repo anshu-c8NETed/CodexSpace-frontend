@@ -2,7 +2,6 @@ import React, { useContext, useState, useEffect } from 'react'
 import { UserContext } from '../context/user.context'
 import axios from "../config/axios"
 import { useNavigate } from 'react-router-dom'
-import { initializeSocket } from '../config/socket'
 
 const Home = () => {
     const { user } = useContext(UserContext)
@@ -11,6 +10,8 @@ const Home = () => {
     const [project, setProject] = useState([])
     const [scrollY, setScrollY] = useState(0)
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+    const [createError, setCreateError] = useState('')
+    const [isCreating, setIsCreating] = useState(false)
     
     const navigate = useNavigate()
 
@@ -22,16 +23,46 @@ const Home = () => {
 
     function createProject(e) {
         e.preventDefault()
+        
+        // Clear previous errors
+        setCreateError('')
+        
+        // Validation
+        if (!projectName.trim()) {
+            setCreateError('Please enter a workspace name')
+            return
+        }
+        
+        if (projectName.trim().length < 3) {
+            setCreateError('Workspace name must be at least 3 characters long')
+            return
+        }
+        
+        setIsCreating(true)
+        
         axios.post('/projects/create', {
-            name: projectName,
+            name: projectName.trim(),
         })
             .then((res) => {
                 setIsModalOpen(false)
                 setProjectName('')
+                setCreateError('')
                 fetchProjects()
             })
             .catch((error) => {
                 console.log(error)
+                
+                // Handle duplicate name error
+                if (error.response?.data?.type === 'duplicate_name') {
+                    setCreateError(error.response.data.error)
+                } else if (error.response?.data?.error) {
+                    setCreateError(error.response.data.error)
+                } else {
+                    setCreateError('Failed to create workspace. Please try again.')
+                }
+            })
+            .finally(() => {
+                setIsCreating(false)
             })
     }
 
@@ -50,6 +81,13 @@ const Home = () => {
     useEffect(() => {
         fetchProjects()
     }, [])
+
+    // Close modal handler
+    const handleCloseModal = () => {
+        setIsModalOpen(false)
+        setProjectName('')
+        setCreateError('')
+    }
 
     return (
         <div className="min-h-screen bg-zinc-950 text-zinc-100 relative overflow-hidden">
@@ -505,12 +543,12 @@ const Home = () => {
                 </div>
             </footer>
 
-            {/* Create Project Modal */}
+            {/* Create Project Modal - WITH ERROR HANDLING */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div 
                         className="absolute inset-0 bg-zinc-950/90 backdrop-blur-xl"
-                        onClick={() => setIsModalOpen(false)}
+                        onClick={handleCloseModal}
                     ></div>
 
                     <div className="relative w-full max-w-lg bg-zinc-900 rounded-2xl border border-zinc-800/50 shadow-2xl">
@@ -525,7 +563,7 @@ const Home = () => {
                                     <h3 className="text-xl md:text-2xl font-bold text-zinc-100">New Workspace</h3>
                                 </div>
                                 <button
-                                    onClick={() => setIsModalOpen(false)}
+                                    onClick={handleCloseModal}
                                     className="w-9 h-9 md:w-10 md:h-10 rounded-xl hover:bg-zinc-800/50 flex items-center justify-center transition-colors">
                                     <svg className="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -540,24 +578,58 @@ const Home = () => {
                                 <input
                                     type="text"
                                     value={projectName}
-                                    onChange={(e) => setProjectName(e.target.value)}
+                                    onChange={(e) => {
+                                        setProjectName(e.target.value)
+                                        setCreateError('') // Clear error on input
+                                    }}
                                     placeholder="My Awesome Project"
-                                    className="w-full px-4 py-3 bg-zinc-800/50 border border-zinc-700/50 rounded-xl text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-amber-600/50 focus:bg-zinc-800 transition-all text-sm md:text-base"
+                                    className={`w-full px-4 py-3 bg-zinc-800/50 border rounded-xl text-zinc-100 placeholder-zinc-500 focus:outline-none transition-all text-sm md:text-base ${
+                                        createError 
+                                            ? 'border-red-500/50 focus:border-red-500' 
+                                            : 'border-zinc-700/50 focus:border-amber-600/50 focus:bg-zinc-800'
+                                    }`}
                                     autoFocus
                                 />
+                                
+                                {/* Error Message */}
+                                {createError && (
+                                    <div className="mt-3 flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                                        <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <p className="text-sm text-red-400 flex-1">{createError}</p>
+                                    </div>
+                                )}
+                                
+                                {/* Helper Text */}
+                                <p className="mt-2 text-xs text-zinc-500">
+                                    Choose a unique name for your workspace (min. 3 characters)
+                                </p>
                             </div>
 
                             <div className="flex gap-2 md:gap-3 pt-2 md:pt-4">
                                 <button
                                     type="button"
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="flex-1 px-4 md:px-6 py-2.5 md:py-3 rounded-xl border border-zinc-700/50 text-zinc-300 font-semibold hover:bg-zinc-800/50 transition-all text-sm md:text-base">
+                                    onClick={handleCloseModal}
+                                    disabled={isCreating}
+                                    className="flex-1 px-4 md:px-6 py-2.5 md:py-3 rounded-xl border border-zinc-700/50 text-zinc-300 font-semibold hover:bg-zinc-800/50 transition-all text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed">
                                     Cancel
                                 </button>
                                 <button
                                     onClick={createProject}
-                                    className="flex-1 px-4 md:px-6 py-2.5 md:py-3 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 text-zinc-950 font-semibold hover:shadow-xl hover:shadow-amber-900/30 transition-all text-sm md:text-base">
-                                    Create
+                                    disabled={isCreating || !projectName.trim()}
+                                    className="flex-1 px-4 md:px-6 py-2.5 md:py-3 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 text-zinc-950 font-semibold hover:shadow-xl hover:shadow-amber-900/30 transition-all text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                                    {isCreating ? (
+                                        <>
+                                            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Creating...
+                                        </>
+                                    ) : (
+                                        'Create'
+                                    )}
                                 </button>
                             </div>
                         </div>
