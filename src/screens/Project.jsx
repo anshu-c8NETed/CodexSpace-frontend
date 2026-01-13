@@ -58,12 +58,11 @@ const Project = () => {
     const [isResizingTerminal, setIsResizingTerminal] = useState(false)
     const [isResizingChat, setIsResizingChat] = useState(false)
     
-    // Invitation states
-    const [sentInvitations, setSentInvitations] = useState([])
-    const [invitationLoading, setInvitationLoading] = useState(false)
-    
     // Team members state
     const [teamMembers, setTeamMembers] = useState([])
+    
+    // Loading state for adding collaborators
+    const [isAddingCollaborators, setIsAddingCollaborators] = useState(false)
     
     const navigate = useNavigate()
 
@@ -481,59 +480,47 @@ server.listen(PORT, () => {
         })
     }
 
+    // UPDATED: Direct user addition without invitation
     function addCollaborators() {
-    if (selectedUserId.size === 0) {
-        alert('Please select at least one user');
-        return;
-    }
+        if (selectedUserId.size === 0) {
+            alert('Please select at least one user');
+            return;
+        }
 
-    setInvitationLoading(true);
-    
-    console.log('📤 Sending invitations...');
-    console.log('Project ID:', location.state.project._id);
-    console.log('Selected User IDs:', Array.from(selectedUserId));
-    console.log('API Base URL:', import.meta.env.VITE_API_URL);
-    console.log('Token exists:', !!localStorage.getItem('token'));
-    
-    const invitationPromises = Array.from(selectedUserId).map(userId => {
-        console.log(`Sending invitation to user: ${userId}`);
-        return axios.post("/invitations/send", {
+        setIsAddingCollaborators(true);
+        
+        console.log('📤 Adding collaborators directly...');
+        console.log('Project ID:', project._id);
+        console.log('Selected User IDs:', Array.from(selectedUserId));
+        
+        axios.put("/projects/add-user", {
             projectId: project._id,
-            recipientId: userId
-        });
-    });
-
-    Promise.all(invitationPromises)
-        .then(responses => {
-            console.log('✅ Success responses:', responses);
-            alert(`Successfully sent ${selectedUserId.size} invitation${selectedUserId.size !== 1 ? 's' : ''}!`);
+            users: Array.from(selectedUserId)
+        })
+        .then(response => {
+            console.log('✅ Success:', response.data);
+            alert(`Successfully added ${selectedUserId.size} collaborator${selectedUserId.size !== 1 ? 's' : ''}!`);
             setSelectedUserId(new Set());
             setIsModalOpen(false);
-            fetchSentInvitations();
+            
+            // Refresh project details to show new team members
+            fetchProjectDetails();
         })
         .catch(err => {
-            console.error('❌ Full error object:', err);
+            console.error('❌ Error:', err);
             
-            let errorMessage = 'Failed to send invitations';
+            let errorMessage = 'Failed to add collaborators';
             
             if (err.response) {
-                // The request was made and the server responded with a status code
-                // that falls out of the range of 2xx
-                console.error('Response error data:', err.response.data);
-                console.error('Response status:', err.response.status);
-                console.error('Response headers:', err.response.headers);
-                
                 errorMessage = err.response.data?.message || 
                               err.response.data?.error || 
                               `Server error: ${err.response.status}`;
                 
                 if (err.response.status === 401) {
                     errorMessage = 'Authentication failed. Please login again.';
-                    // Optionally redirect to login
-                    // navigate('/login');
                 }
                 if (err.response.status === 403) {
-                    errorMessage = 'You do not have permission to send invitations.';
+                    errorMessage = 'You do not have permission to add collaborators.';
                 }
                 if (err.response.status === 404) {
                     errorMessage = 'Project or user not found.';
@@ -542,31 +529,16 @@ server.listen(PORT, () => {
                     errorMessage = 'Server error. Please try again later.';
                 }
             } else if (err.request) {
-                // The request was made but no response was received
-                console.error('No response received:', err.request);
-                console.error('Request config:', err.config);
                 errorMessage = 'Network error: Could not reach server. Check your internet connection.';
             } else {
-                // Something happened in setting up the request that triggered an Error
-                console.error('Error setting up request:', err.message);
                 errorMessage = `Error: ${err.message}`;
             }
             
             alert(errorMessage);
         })
         .finally(() => {
-            setInvitationLoading(false);
+            setIsAddingCollaborators(false);
         });
-}
-
-    function fetchSentInvitations() {
-        axios.get(`/invitations/sent/${project._id}`)
-            .then(res => {
-                setSentInvitations(res.data.invitations)
-            })
-            .catch(err => {
-                console.error('Error fetching sent invitations:', err)
-            })
     }
 
     // Fetch project details with populated users
@@ -575,11 +547,20 @@ server.listen(PORT, () => {
             const response = await axios.get(`/projects/get-project/${project._id}`)
             if (response.data.project) {
                 setProject(response.data.project)
-                // Set team members from the populated users array
                 setTeamMembers(response.data.project.users || [])
             }
         } catch (error) {
             console.error('Error fetching project details:', error)
+        }
+    }
+
+    // Fetch available users
+    const fetchAvailableUsers = async () => {
+        try {
+            const response = await axios.get(`/projects/available-users/${project._id}`)
+            setUsers(response.data.users || [])
+        } catch (error) {
+            console.error('Error fetching available users:', error)
         }
     }
 
@@ -610,14 +591,14 @@ server.listen(PORT, () => {
         initWebContainer()
     }, [])
 
-    // Socket initialization - CRITICAL: This handles AI file tree responses
+    // Socket initialization
     useEffect(() => {
         const socket = initializeSocket(project._id)
 
         receiveMessage('project-message', (data) => {
             setMessages(prevMessages => [...prevMessages, data])
             
-            // CRITICAL: Handle AI-generated file tree
+            // Handle AI-generated file tree
             if (data.sender._id === 'ai' && data.fileTree) {
                 setFileTree(data.fileTree)
                 addLog('success', '✓ Received code from AI')
@@ -637,11 +618,7 @@ server.listen(PORT, () => {
             setIsAiTyping(data.isTyping)
         })
 
-       axios.get(`/projects/available-users/${project._id}`)
-            .then(res => setUsers(res.data.users))
-            .catch(err => console.error('Error:', err))
-
-        fetchSentInvitations()
+        fetchAvailableUsers()
         fetchProjectDetails()
 
         return () => {
@@ -1264,12 +1241,12 @@ server.listen(PORT, () => {
                 </section>
             )}
 
-            {/* Modal */}
+            {/* Modal - UPDATED for direct user addition */}
             {isModalOpen && (
                 <div className='fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50'>
                     <div className='bg-[#2d2d30] rounded-3xl w-full max-w-md shadow-2xl border border-[#3e3e42] max-h-[90vh] overflow-hidden flex flex-col'>
                         <header className='flex justify-between items-center p-6 border-b border-[#3e3e42]'>
-                            <h2 className='text-2xl font-bold text-white'>Add Collaborator</h2>
+                            <h2 className='text-2xl font-bold text-white'>Add Collaborators</h2>
                             <button 
                                 onClick={() => setIsModalOpen(false)} 
                                 className='p-2.5 hover:bg-[#3c3c3c] rounded-xl'>
@@ -1298,9 +1275,9 @@ server.listen(PORT, () => {
                         <div className='p-6 border-t border-[#3e3e42]'>
                             <button
                                 onClick={addCollaborators}
-                                disabled={selectedUserId.size === 0}
-                                className='w-full px-4 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl font-bold hover:from-purple-500 hover:to-pink-500 disabled:opacity-50'>
-                                {invitationLoading ? 'Sending...' : `Send ${selectedUserId.size > 0 ? selectedUserId.size : ''} Invitation${selectedUserId.size !== 1 ? 's' : ''}`}
+                                disabled={selectedUserId.size === 0 || isAddingCollaborators}
+                                className='w-full px-4 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl font-bold hover:from-purple-500 hover:to-pink-500 disabled:opacity-50 disabled:cursor-not-allowed'>
+                                {isAddingCollaborators ? 'Adding...' : `Add ${selectedUserId.size > 0 ? selectedUserId.size : ''} Collaborator${selectedUserId.size !== 1 ? 's' : ''}`}
                             </button>
                         </div>
                     </div>
@@ -1328,6 +1305,3 @@ server.listen(PORT, () => {
 }
 
 export default Project
-
-
-
