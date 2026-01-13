@@ -637,7 +637,7 @@ server.listen(PORT, () => {
             setIsAiTyping(data.isTyping)
         })
 
-        axios.get('/users/all')
+       axios.get(`/projects/available-users/${project._id}`)
             .then(res => setUsers(res.data.users))
             .catch(err => console.error('Error:', err))
 
@@ -1328,4 +1328,5 @@ server.listen(PORT, () => {
 }
 
 export default Project
+
 
