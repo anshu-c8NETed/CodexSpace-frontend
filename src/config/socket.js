@@ -1,8 +1,24 @@
 import { io } from 'socket.io-client';
 
 let socketInstance = null;
+let currentProjectId = null;
 
 export const initializeSocket = (projectId) => {
+    // If socket already exists for this project, return it
+    if (socketInstance && currentProjectId === projectId && socketInstance.connected) {
+        console.log('♻️ Reusing existing socket connection');
+        return socketInstance;
+    }
+
+    // Disconnect old socket if project changed
+    if (socketInstance && currentProjectId !== projectId) {
+        console.log('🔄 Project changed, disconnecting old socket');
+        socketInstance.disconnect();
+        socketInstance = null;
+    }
+
+    currentProjectId = projectId;
+
     socketInstance = io(import.meta.env.VITE_API_URL, {
         auth: {
             token: localStorage.getItem('token')
@@ -17,7 +33,7 @@ export const initializeSocket = (projectId) => {
     });
 
     socketInstance.on('connect', () => {
-        console.log('✅ Socket connected');
+        console.log('✅ Socket connected to project:', projectId);
     });
 
     socketInstance.on('connect_error', (error) => {
@@ -51,5 +67,10 @@ export const disconnectSocket = () => {
     if (socketInstance) {
         socketInstance.disconnect();
         socketInstance = null;
+        currentProjectId = null;
     }
+}
+
+export const getSocket = () => {
+    return socketInstance;
 }
