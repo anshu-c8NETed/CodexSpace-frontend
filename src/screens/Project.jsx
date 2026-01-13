@@ -498,7 +498,7 @@ server.listen(PORT, () => {
     const invitationPromises = Array.from(selectedUserId).map(userId => {
         console.log(`Sending invitation to user: ${userId}`);
         return axios.post("/invitations/send", {
-            projectId: location.state.project._id,
+            projectId: project._id,
             recipientId: userId
         });
     });
@@ -1328,5 +1328,6 @@ server.listen(PORT, () => {
 }
 
 export default Project
+
 
 
