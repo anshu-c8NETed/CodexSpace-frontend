@@ -2,6 +2,7 @@ import React, { useContext, useState, useEffect } from 'react'
 import { UserContext } from '../context/user.context'
 import axios from "../config/axios"
 import { useNavigate } from 'react-router-dom'
+import { initializeSocket } from '../config/socket'
 
 const Home = () => {
     const { user } = useContext(UserContext)
@@ -73,11 +74,30 @@ const Home = () => {
     }
 
     useEffect(() => {
-        fetchInvitations()
-        // Poll for new invitations every 30 seconds
-        const interval = setInterval(fetchInvitations, 30000)
-        return () => clearInterval(interval)
-    }, [])
+        fetchInvitations();
+        
+        // Faster polling fallback
+        const interval = setInterval(fetchInvitations, 5000);
+        
+        // Initialize socket for notifications
+        const socket = initializeSocket('user-notifications');
+        
+        // Listen for new invitations
+        socket.on('new-invitation', (invitation) => {
+            console.log('📨 New invitation received:', invitation);
+            setInvitations(prev => [invitation, ...prev]);
+        });
+        
+        // Refresh on window focus
+        const handleFocus = () => fetchInvitations();
+        window.addEventListener('focus', handleFocus);
+        
+        return () => {
+            clearInterval(interval);
+            socket.off('new-invitation');
+            window.removeEventListener('focus', handleFocus);
+        };
+    }, []);
 
     function createProject(e) {
         e.preventDefault()
