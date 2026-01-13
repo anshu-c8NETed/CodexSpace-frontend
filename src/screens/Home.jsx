@@ -13,6 +13,12 @@ const Home = () => {
     const [createError, setCreateError] = useState('')
     const [isCreating, setIsCreating] = useState(false)
     
+    // NEW: Delete workspace states
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+    const [projectToDelete, setProjectToDelete] = useState(null)
+    const [isDeleting, setIsDeleting] = useState(false)
+    const [deleteError, setDeleteError] = useState('')
+    
     const navigate = useNavigate()
 
     useEffect(() => {
@@ -87,6 +93,44 @@ const Home = () => {
         setIsModalOpen(false)
         setProjectName('')
         setCreateError('')
+    }
+
+    // NEW: Delete workspace handlers
+    const handleDeleteClick = (proj, e) => {
+        e.stopPropagation() // Prevent navigation to project
+        setProjectToDelete(proj)
+        setDeleteModalOpen(true)
+        setDeleteError('')
+    }
+
+    const handleCloseDeleteModal = () => {
+        setDeleteModalOpen(false)
+        setProjectToDelete(null)
+        setDeleteError('')
+    }
+
+    const handleConfirmDelete = async () => {
+        if (!projectToDelete) return
+
+        setIsDeleting(true)
+        setDeleteError('')
+
+        try {
+            await axios.delete(`/projects/delete/${projectToDelete._id}`)
+            
+            // Remove from local state
+            setProject(project.filter(p => p._id !== projectToDelete._id))
+            
+            // Close modal
+            setDeleteModalOpen(false)
+            setProjectToDelete(null)
+        } catch (error) {
+            console.error('Delete error:', error)
+            const errorMessage = error.response?.data?.error || 'Failed to delete workspace. Please try again.'
+            setDeleteError(errorMessage)
+        } finally {
+            setIsDeleting(false)
+        }
     }
 
     return (
@@ -413,37 +457,51 @@ const Home = () => {
                             {project.map((proj) => (
                                 <div
                                     key={proj._id}
-                                    onClick={() => navigate(`/project`, { state: { project: proj } })}
-                                    className="group cursor-pointer relative p-5 md:p-6 bg-zinc-900/30 backdrop-blur rounded-2xl border border-zinc-800/50 hover:border-amber-600/30 transition-all duration-500 hover:bg-zinc-900/50">
+                                    className="group relative p-5 md:p-6 bg-zinc-900/30 backdrop-blur rounded-2xl border border-zinc-800/50 hover:border-amber-600/30 transition-all duration-500 hover:bg-zinc-900/50">
                                     
-                                    <div className="flex items-start justify-between mb-4 md:mb-6">
-                                        <div className="w-12 h-12 md:w-14 md:h-14 bg-zinc-800/50 rounded-xl flex items-center justify-center border border-zinc-700/50 group-hover:border-amber-600/30 transition-all">
-                                            <svg className="w-6 h-6 md:w-7 md:h-7 text-zinc-500 group-hover:text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                    {/* NEW: Delete Button */}
+                                    <button
+                                        onClick={(e) => handleDeleteClick(proj, e)}
+                                        className="absolute bottom-4 right-4 p-2 bg-red-900/20 hover:bg-red-900/40 border border-red-600/20 hover:border-red-600/50 rounded-lg transition-all opacity-100 group-hover:opacity-100 z-10"
+                                        title="Delete workspace">
+                                        <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+
+                                    <div
+                                        onClick={() => navigate(`/project`, { state: { project: proj } })}
+                                        className="cursor-pointer">
+                                        
+                                        <div className="flex items-start justify-between mb-4 md:mb-6">
+                                            <div className="w-12 h-12 md:w-14 md:h-14 bg-zinc-800/50 rounded-xl flex items-center justify-center border border-zinc-700/50 group-hover:border-amber-600/30 transition-all">
+                                                <svg className="w-6 h-6 md:w-7 md:h-7 text-zinc-500 group-hover:text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                                </svg>
+                                            </div>
+                                            <div className="flex items-center gap-2 px-2 md:px-2.5 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                                                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
+                                                <span className="text-xs font-medium text-emerald-300">Active</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <h3 className="text-lg md:text-xl font-semibold mb-2 md:mb-3 group-hover:text-amber-500 transition-colors line-clamp-2 text-zinc-100">
+                                            {proj.name}
+                                        </h3>
+                                        
+                                        <div className="flex items-center gap-2 text-sm text-zinc-500 mb-3 md:mb-4">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                            </svg>
+                                            <span className="font-medium text-zinc-400">{proj.users.length} {proj.users.length === 1 ? 'member' : 'members'}</span>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 text-amber-600 font-medium text-sm group-hover:gap-3 transition-all">
+                                            <span>Open Workspace</span>
+                                            <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                                             </svg>
                                         </div>
-                                        <div className="flex items-center gap-2 px-2 md:px-2.5 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-                                            <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
-                                            <span className="text-xs font-medium text-emerald-300">Active</span>
-                                        </div>
-                                    </div>
-                                    
-                                    <h3 className="text-lg md:text-xl font-semibold mb-2 md:mb-3 group-hover:text-amber-500 transition-colors line-clamp-2 text-zinc-100">
-                                        {proj.name}
-                                    </h3>
-                                    
-                                    <div className="flex items-center gap-2 text-sm text-zinc-500 mb-3 md:mb-4">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                                        </svg>
-                                        <span className="font-medium text-zinc-400">{proj.users.length} {proj.users.length === 1 ? 'member' : 'members'}</span>
-                                    </div>
-
-                                    <div className="flex items-center gap-2 text-amber-600 font-medium text-sm group-hover:gap-3 transition-all">
-                                        <span>Open Workspace</span>
-                                        <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                                        </svg>
                                     </div>
                                 </div>
                             ))}
@@ -543,7 +601,7 @@ const Home = () => {
                 </div>
             </footer>
 
-            {/* Create Project Modal - WITH ERROR HANDLING */}
+            {/* Create Project Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div 
@@ -629,6 +687,76 @@ const Home = () => {
                                         </>
                                     ) : (
                                         'Create'
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* NEW: Delete Confirmation Modal */}
+            {deleteModalOpen && projectToDelete && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div 
+                        className="absolute inset-0 bg-zinc-950/90 backdrop-blur-xl"
+                        onClick={handleCloseDeleteModal}
+                    ></div>
+
+                    <div className="relative w-full max-w-md bg-zinc-900 rounded-2xl border border-red-600/30 shadow-2xl">
+                        <div className="p-6 md:p-8 space-y-4 md:space-y-6">
+                            <div className="flex items-start gap-4">
+                                <div className="w-12 h-12 bg-red-600/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                                    <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="text-xl font-bold text-zinc-100 mb-2">Delete Workspace?</h3>
+                                    <p className="text-sm text-zinc-400 mb-1">
+                                        Are you sure you want to delete <span className="font-semibold text-zinc-200">"{projectToDelete.name}"</span>?
+                                    </p>
+                                    <p className="text-sm text-red-400">
+                                        This action cannot be undone. All files and collaborations will be permanently removed.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {deleteError && (
+                                <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                                    <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <p className="text-sm text-red-400 flex-1">{deleteError}</p>
+                                </div>
+                            )}
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    onClick={handleCloseDeleteModal}
+                                    disabled={isDeleting}
+                                    className="flex-1 px-4 py-2.5 rounded-xl border border-zinc-700/50 text-zinc-300 font-semibold hover:bg-zinc-800/50 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleConfirmDelete}
+                                    disabled={isDeleting}
+                                    className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                                    {isDeleting ? (
+                                        <>
+                                            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Deleting...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                            Delete
+                                        </>
                                     )}
                                 </button>
                             </div>
