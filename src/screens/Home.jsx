@@ -1,10 +1,12 @@
+
+
 import React, { useContext, useState, useEffect } from 'react'
 import { UserContext } from '../context/user.context'
 import axios from "../config/axios"
 import { useNavigate } from 'react-router-dom'
 
 const Home = () => {
-    const { user } = useContext(UserContext)
+    const { user, setUser } = useContext(UserContext)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [projectName, setProjectName] = useState('')
     const [project, setProject] = useState([])
@@ -13,7 +15,6 @@ const Home = () => {
     const [createError, setCreateError] = useState('')
     const [isCreating, setIsCreating] = useState(false)
     
-    // NEW: Delete workspace states
     const [deleteModalOpen, setDeleteModalOpen] = useState(false)
     const [projectToDelete, setProjectToDelete] = useState(null)
     const [isDeleting, setIsDeleting] = useState(false)
@@ -30,10 +31,8 @@ const Home = () => {
     function createProject(e) {
         e.preventDefault()
         
-        // Clear previous errors
         setCreateError('')
         
-        // Validation
         if (!projectName.trim()) {
             setCreateError('Please enter a workspace name')
             return
@@ -58,7 +57,6 @@ const Home = () => {
             .catch((error) => {
                 console.log(error)
                 
-                // Handle duplicate name error
                 if (error.response?.data?.type === 'duplicate_name') {
                     setCreateError(error.response.data.error)
                 } else if (error.response?.data?.error) {
@@ -74,30 +72,39 @@ const Home = () => {
 
     const fetchProjects = () => {
         axios.get('/projects/all').then((res) => {
+            // Projects are already sorted by createdAt (newest first) from backend
             setProject(res.data.projects)
         }).catch(err => {
             console.log(err)
         })
     }
 
-    const handleLogout = () => {
-        navigate('/login')
+    const handleLogout = async () => {
+        try {
+            // Call backend logout endpoint (to blacklist token in Redis)
+            await axios.get('/users/logout')
+        } catch (error) {
+            console.error('Logout error:', error)
+        } finally {
+            // CRITICAL: Clear everything
+            localStorage.removeItem('token')  // Remove token
+            setUser(null)                      // Clear user from context
+            navigate('/login')                 // Redirect to login
+        }
     }
 
     useEffect(() => {
         fetchProjects()
     }, [])
 
-    // Close modal handler
     const handleCloseModal = () => {
         setIsModalOpen(false)
         setProjectName('')
         setCreateError('')
     }
 
-    // NEW: Delete workspace handlers
     const handleDeleteClick = (proj, e) => {
-        e.stopPropagation() // Prevent navigation to project
+        e.stopPropagation()
         setProjectToDelete(proj)
         setDeleteModalOpen(true)
         setDeleteError('')
@@ -118,10 +125,8 @@ const Home = () => {
         try {
             await axios.delete(`/projects/delete/${projectToDelete._id}`)
             
-            // Remove from local state
             setProject(project.filter(p => p._id !== projectToDelete._id))
             
-            // Close modal
             setDeleteModalOpen(false)
             setProjectToDelete(null)
         } catch (error) {
@@ -149,8 +154,9 @@ const Home = () => {
             <div className="absolute top-0 right-1/3 w-[400px] h-[400px] md:w-[600px] md:h-[600px] bg-amber-900/10 rounded-full blur-3xl"></div>
             <div className="absolute bottom-0 left-1/3 w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-zinc-800/20 rounded-full blur-3xl"></div>
 
-            {/* Navigation */}
+            {/* Navigation - keeping existing nav code... */}
             <nav className="relative z-50 border-b border-zinc-800/50 bg-zinc-950/80 backdrop-blur-2xl sticky top-0">
+                {/* ... keeping all existing nav code unchanged ... */}
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 md:py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 md:gap-3">
@@ -165,7 +171,6 @@ const Home = () => {
                             <span className="text-lg md:text-xl font-semibold tracking-tight text-zinc-100">CodexSpace</span>
                         </div>
                         
-                        {/* Desktop Navigation */}
                         <div className="hidden md:flex items-center gap-8">
                             <a href="#projects" className="text-sm font-medium text-zinc-400 hover:text-zinc-100 transition-colors relative group">
                                 Projects
@@ -182,9 +187,7 @@ const Home = () => {
                         </div>
 
                         <div className="flex items-center gap-2 md:gap-3">
-                            {/* Enhanced User Profile Section */}
                             <div className="hidden lg:flex items-center gap-3 px-4 py-2.5 bg-gradient-to-br from-zinc-900/80 to-zinc-900/50 rounded-xl border border-zinc-800/50 backdrop-blur-xl hover:border-amber-600/30 transition-all duration-300 shadow-lg shadow-black/20">
-                                {/* Avatar with gradient ring */}
                                 <div className="relative">
                                     <div className="absolute inset-0 bg-gradient-to-br from-amber-600/50 to-amber-700/50 rounded-lg blur-sm"></div>
                                     <div className="relative w-8 h-8 bg-gradient-to-br from-amber-600 to-amber-700 rounded-lg flex items-center justify-center text-sm font-bold text-zinc-950 shadow-inner">
@@ -192,14 +195,12 @@ const Home = () => {
                                     </div>
                                 </div>
                                 
-                                {/* Email with better styling */}
                                 <div className="flex flex-col">
                                     <span className="text-xs text-zinc-500 font-medium">Signed in as</span>
                                     <span className="text-sm font-semibold text-zinc-200 max-w-[140px] truncate">{user?.email}</span>
                                 </div>
                             </div>
                             
-                            {/* Enhanced Logout Button */}
                             <button 
                                 onClick={handleLogout}
                                 className="cursor-pointer group relative px-4 py-2.5 bg-gradient-to-br from-zinc-900/80 to-zinc-900/50 hover:from-red-950/40 hover:to-red-900/30 backdrop-blur-xl rounded-xl font-semibold transition-all duration-300 text-sm border border-zinc-800/50 hover:border-red-600/30 text-zinc-300 hover:text-red-400 shadow-lg shadow-black/20 hover:shadow-red-900/20 flex items-center gap-2">
@@ -209,7 +210,6 @@ const Home = () => {
                                 <span className="hidden sm:inline">Logout</span>
                             </button>
 
-                            {/* Mobile Menu Button */}
                             <button 
                                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                                 className="md:hidden p-2 hover:bg-zinc-800/50 rounded-lg transition-all">
@@ -224,7 +224,6 @@ const Home = () => {
                         </div>
                     </div>
 
-                    {/* Mobile Menu */}
                     {mobileMenuOpen && (
                         <div className="md:hidden mt-4 pb-4 space-y-2 border-t border-zinc-800/50 pt-4">
                             <a href="#projects" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50 rounded-lg transition-colors">
@@ -236,7 +235,6 @@ const Home = () => {
                             <a href="#technology" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50 rounded-lg transition-colors">
                                 Technology
                             </a>
-                            {/* User info in mobile menu */}
                             <div className="lg:hidden flex items-center gap-3 px-4 py-3 bg-zinc-900/50 rounded-lg border border-zinc-800/50">
                                 <div className="w-8 h-8 bg-gradient-to-br from-amber-600 to-amber-700 rounded-lg flex items-center justify-center text-xs font-bold text-zinc-950">
                                     {user?.email?.charAt(0).toUpperCase()}
@@ -248,6 +246,9 @@ const Home = () => {
                 </div>
             </nav>
 
+            {/* Keeping all existing sections: Hero, Technology, Features... */}
+            {/* ... (keep all existing sections unchanged) ... */}
+            
             {/* Hero Section */}
             <section className="relative z-10 pt-12 pb-10 md:pt-24 md:pb-20 lg:pt-32 lg:pb-28">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -284,11 +285,9 @@ const Home = () => {
                         </div>
                     </div>
 
-                    {/* Code Editor Preview - Hidden on mobile for better UX */}
                     <div className="hidden sm:block relative mt-12 md:mt-16 group">
                         <div className="absolute -inset-1 bg-gradient-to-r from-amber-600/20 via-zinc-800/20 to-amber-600/20 rounded-2xl blur-2xl group-hover:blur-xl transition-all duration-500"></div>
                         <div className="relative rounded-2xl overflow-hidden border border-zinc-800/50 shadow-2xl bg-zinc-900/50 backdrop-blur">
-                            {/* Browser Bar */}
                             <div className="flex items-center gap-2 px-3 md:px-4 py-2 md:py-3 bg-zinc-900/80 border-b border-zinc-800/50">
                                 <div className="flex gap-1 md:gap-1.5">
                                     <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-zinc-700"></div>
@@ -302,7 +301,6 @@ const Home = () => {
                                 </div>
                             </div>
                             
-                            {/* Simplified Code View for smaller screens */}
                             <div className="p-4 md:p-6 bg-zinc-950/50 font-mono text-xs md:text-sm">
                                 <div className="space-y-2 md:space-y-3">
                                     <div className="flex gap-2 md:gap-3">
@@ -335,6 +333,7 @@ const Home = () => {
                 </div>
             </section>
 
+            {/* Keep Technology, Features, Stats, CTA sections unchanged... */}
             {/* Technology Section */}
             <section id="technology" className="relative z-10 py-12 md:py-24 border-y border-zinc-800/50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -343,7 +342,6 @@ const Home = () => {
                             Active Models
                         </h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-                            {/* Groq AI - Primary */}
                             <div className="group p-4 md:p-6 bg-gradient-to-br from-emerald-900/40 to-teal-900/40 backdrop-blur rounded-xl border border-emerald-600/40 hover:border-emerald-500/60 transition-all">
                                 <div className="w-10 h-10 md:w-12 md:h-12 bg-emerald-600/20 rounded-xl flex items-center justify-center mb-3 md:mb-4">
                                     <svg className="w-5 h-5 md:w-6 md:h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -355,7 +353,6 @@ const Home = () => {
                                 <p className="text-xs text-zinc-400 mt-2">Llama 3.3 70B - Lightning fast</p>
                             </div>
 
-                            {/* Gemini - Backup */}
                             <div className="group p-4 md:p-6 bg-zinc-900/40 backdrop-blur rounded-xl border border-amber-600/30 hover:border-amber-500/50 transition-all">
                                 <div className="w-10 h-10 md:w-12 md:h-12 bg-amber-600/10 rounded-xl flex items-center justify-center mb-3 md:mb-4">
                                     <svg className="w-5 h-5 md:w-6 md:h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -434,7 +431,7 @@ const Home = () => {
                 </div>
             </section>
 
-            {/* Projects Section */}
+            {/* Projects Section - MODIFIED with correct owner display */}
             <section id="projects" className="relative z-10 py-12 md:py-24 border-t border-zinc-800/50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6">
                     <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between mb-8 md:mb-12 gap-4">
@@ -454,57 +451,69 @@ const Home = () => {
 
                     {project.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                            {project.map((proj) => (
-                                <div
-                                    key={proj._id}
-                                    className="group relative p-5 md:p-6 bg-zinc-900/30 backdrop-blur rounded-2xl border border-zinc-800/50 hover:border-amber-600/30 transition-all duration-500 hover:bg-zinc-900/50">
-                                    
-                                    {/* NEW: Delete Button */}
-                                    <button
-                                        onClick={(e) => handleDeleteClick(proj, e)}
-                                        className="absolute bottom-4 right-4 p-2 bg-red-900/20 hover:bg-red-900/40 border border-red-600/20 hover:border-red-600/50 rounded-lg transition-all opacity-100 group-hover:opacity-100 z-10"
-                                        title="Delete workspace">
-                                        <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                    </button>
-
+                            {project.map((proj) => {
+                                // CRITICAL FIX: Correctly identify if current user is owner
+                                const isOwner = proj.owner?._id === user._id;
+                                
+                                return (
                                     <div
-                                        onClick={() => navigate(`/project`, { state: { project: proj } })}
-                                        className="cursor-pointer">
+                                        key={proj._id}
+                                        className="group relative p-5 md:p-6 bg-zinc-900/30 backdrop-blur rounded-2xl border border-zinc-800/50 hover:border-amber-600/30 transition-all duration-500 hover:bg-zinc-900/50">
                                         
-                                        <div className="flex items-start justify-between mb-4 md:mb-6">
-                                            <div className="w-12 h-12 md:w-14 md:h-14 bg-zinc-800/50 rounded-xl flex items-center justify-center border border-zinc-700/50 group-hover:border-amber-600/30 transition-all">
-                                                <svg className="w-6 h-6 md:w-7 md:h-7 text-zinc-500 group-hover:text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                        {/* FIXED: Only show delete button if user is owner */}
+                                        {isOwner && (
+                                            <button
+                                                onClick={(e) => handleDeleteClick(proj, e)}
+                                                className="absolute bottom-4 right-4 p-2 bg-red-900/20 hover:bg-red-900/40 border border-red-600/20 hover:border-red-600/50 rounded-lg transition-all opacity-100 group-hover:opacity-100 z-10"
+                                                title="Delete workspace">
+                                                <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        )}
+
+                                        <div
+                                            onClick={() => navigate(`/project`, { state: { project: proj } })}
+                                            className="cursor-pointer">
+                                            
+                                            <div className="flex items-start justify-between mb-4 md:mb-6">
+                                                <div className="w-12 h-12 md:w-14 md:h-14 bg-zinc-800/50 rounded-xl flex items-center justify-center border border-zinc-700/50 group-hover:border-amber-600/30 transition-all">
+                                                    <svg className="w-6 h-6 md:w-7 md:h-7 text-zinc-500 group-hover:text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                                    </svg>
+                                                </div>
+                                                <div className="flex items-center gap-2 px-2 md:px-2.5 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                                                    <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
+                                                    <span className="text-xs font-medium text-emerald-300">Active</span>
+                                                </div>
+                                            </div>
+                                            
+                                            <h3 className="text-lg md:text-xl font-semibold mb-2 md:mb-3 group-hover:text-amber-500 transition-colors line-clamp-2 text-zinc-100">
+                                                {proj.name}
+                                            </h3>
+                                            
+                                            <div className="flex items-center gap-2 text-sm text-zinc-500 mb-3 md:mb-4">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                                </svg>
+                                                <span className="font-medium text-zinc-400">{proj.users?.length || 0} {(proj.users?.length || 0) === 1 ? 'member' : 'members'}</span>
+                                                {isOwner && (
+                                                    <span className="ml-1 px-2 py-0.5 bg-amber-600/20 text-amber-400 text-xs font-semibold rounded border border-amber-600/30">
+                                                        Owner
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <div className="flex items-center gap-2 text-amber-600 font-medium text-sm group-hover:gap-3 transition-all">
+                                                <span>Open Workspace</span>
+                                                <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                                                 </svg>
                                             </div>
-                                            <div className="flex items-center gap-2 px-2 md:px-2.5 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-                                                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
-                                                <span className="text-xs font-medium text-emerald-300">Active</span>
-                                            </div>
-                                        </div>
-                                        
-                                        <h3 className="text-lg md:text-xl font-semibold mb-2 md:mb-3 group-hover:text-amber-500 transition-colors line-clamp-2 text-zinc-100">
-                                            {proj.name}
-                                        </h3>
-                                        
-                                        <div className="flex items-center gap-2 text-sm text-zinc-500 mb-3 md:mb-4">
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                                            </svg>
-                                            <span className="font-medium text-zinc-400">{proj.users.length} {proj.users.length === 1 ? 'member' : 'members'}</span>
-                                        </div>
-
-                                        <div className="flex items-center gap-2 text-amber-600 font-medium text-sm group-hover:gap-3 transition-all">
-                                            <span>Open Workspace</span>
-                                            <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                                            </svg>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     ) : (
                         <div className="relative p-8 md:p-16 bg-zinc-900/30 backdrop-blur rounded-2xl border-2 border-dashed border-zinc-800/50 text-center">
@@ -587,7 +596,6 @@ const Home = () => {
                         <div className="flex flex-col md:flex-row items-center gap-3 md:gap-4">
                             <p className="text-zinc-500 text-xs md:text-sm text-center">© 2026 CodexSpace. Collaborative development platform.</p>
                             
-                            {/* Watermark - Made by A.R */}
                             <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-br from-zinc-900/80 to-zinc-900/50 rounded-lg border border-zinc-800/50 backdrop-blur hover:border-amber-600/30 transition-all group">
                                 <svg className="w-3.5 h-3.5 text-amber-600 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
@@ -638,7 +646,7 @@ const Home = () => {
                                     value={projectName}
                                     onChange={(e) => {
                                         setProjectName(e.target.value)
-                                        setCreateError('') // Clear error on input
+                                        setCreateError('')
                                     }}
                                     placeholder="My Awesome Project"
                                     className={`w-full px-4 py-3 bg-zinc-800/50 border rounded-xl text-zinc-100 placeholder-zinc-500 focus:outline-none transition-all text-sm md:text-base ${
@@ -649,7 +657,6 @@ const Home = () => {
                                     autoFocus
                                 />
                                 
-                                {/* Error Message */}
                                 {createError && (
                                     <div className="mt-3 flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
                                         <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -659,7 +666,6 @@ const Home = () => {
                                     </div>
                                 )}
                                 
-                                {/* Helper Text */}
                                 <p className="mt-2 text-xs text-zinc-500">
                                     Choose a unique name for your workspace (min. 3 characters)
                                 </p>
@@ -695,7 +701,7 @@ const Home = () => {
                 </div>
             )}
 
-            {/* NEW: Delete Confirmation Modal */}
+            {/* Delete Confirmation Modal */}
             {deleteModalOpen && projectToDelete && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div 
