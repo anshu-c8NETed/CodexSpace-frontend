@@ -7,7 +7,6 @@ import Markdown from 'markdown-to-jsx'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/atom-one-dark.css'
 import { getWebContainer, isWebContainerSupported } from '../config/webContainer'
-
 function SyntaxHighlightedCode(props) {
     const ref = useRef(null)
 
@@ -26,7 +25,7 @@ const Project = () => {
     const [isSidePanelOpen, setIsSidePanelOpen] = useState(false)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [selectedUserId, setSelectedUserId] = useState(new Set())
-    const [project, setProject] = useState(location.state.project)
+    const [project, setProject] = useState(location.state?.project || null)
     const [message, setMessage] = useState('')
     const { user } = useContext(UserContext)
     const messageBox = React.createRef()
@@ -72,6 +71,13 @@ const Project = () => {
     
     const navigate = useNavigate()
 
+    // Initialize team members from project prop
+useEffect(() => {
+    if (project?.users && Array.isArray(project.users)) {
+        console.log('🔄 Initializing team members from project prop:', project.users);
+        setTeamMembers(project.users);
+    }
+}, []);
     // Add log helper
     const addLog = (type, message) => {
         const timestamp = new Date().toLocaleTimeString()
@@ -492,10 +498,10 @@ server.listen(PORT, () => {
             alert('Please select at least one user');
             return;
         }
-
+    
         setIsAddingCollaborators(true);
         
-        console.log('📤 Adding collaborators directly...');
+        console.log('📤 Adding collaborators...');
         console.log('Project ID:', project._id);
         console.log('Selected User IDs:', Array.from(selectedUserId));
         
@@ -508,8 +514,10 @@ server.listen(PORT, () => {
             alert(`Successfully added ${selectedUserId.size} collaborator${selectedUserId.size !== 1 ? 's' : ''}!`);
             setSelectedUserId(new Set());
             setIsModalOpen(false);
+            setSearchEmail('');
+            setSearchResults([]);
             
-            // Refresh project details to show new team members
+            // FIXED: Refresh project details AND team members
             fetchProjectDetails();
         })
         .catch(err => {
@@ -547,18 +555,27 @@ server.listen(PORT, () => {
         });
     }
 
-    // Fetch project details with populated users
-    const fetchProjectDetails = async () => {
-        try {
-            const response = await axios.get(`/projects/get-project/${project._id}`)
-            if (response.data.project) {
-                setProject(response.data.project)
-                setTeamMembers(response.data.project.users || [])
-            }
-        } catch (error) {
-            console.error('Error fetching project details:', error)
+// Fetch project details with populated users
+const fetchProjectDetails = async () => {
+    try {
+        console.log('📡 Fetching project details for:', project._id);
+        const response = await axios.get(`/projects/get-project/${project._id}`)
+        console.log('✅ Project details received:', response.data);
+        
+        if (response.data.project) {
+            const fetchedProject = response.data.project;
+            setProject(fetchedProject);
+            
+            // FIXED: Set team members from the fetched project
+            const populatedUsers = fetchedProject.users || [];
+            console.log('👥 Team members:', populatedUsers);
+            setTeamMembers(populatedUsers);
         }
+    } catch (error) {
+        console.error('❌ Error fetching project details:', error);
+        console.error('Error response:', error.response?.data);
     }
+}
 
 // NEW: Search users by email
 const searchUsers = async (email) => {
@@ -626,41 +643,46 @@ useEffect(() => {
         initWebContainer()
     }, [])
 
-    // Socket initialization
-    useEffect(() => {
-        const socket = initializeSocket(project._id)
+// Socket initialization
+useEffect(() => {
+    if (!project?._id) {
+        console.error('No project ID, redirecting to home');
+        navigate('/');
+        return;
+    }
 
-        receiveMessage('project-message', (data) => {
-            setMessages(prevMessages => [...prevMessages, data])
+    const socket = initializeSocket(project._id);
+
+    receiveMessage('project-message', (data) => {
+        setMessages(prevMessages => [...prevMessages, data]);
+        
+        if (data.sender._id === 'ai' && data.fileTree) {
+            setFileTree(data.fileTree);
+            addLog('success', '✓ Received code from AI');
             
-            // Handle AI-generated file tree
-            if (data.sender._id === 'ai' && data.fileTree) {
-                setFileTree(data.fileTree)
-                addLog('success', '✓ Received code from AI')
-                
-                // Auto-open the first file
-                const firstFile = Object.keys(data.fileTree)[0]
-                if (firstFile && !openFiles.includes(firstFile)) {
-                    setOpenFiles([firstFile])
-                    setCurrentFile(firstFile)
-                }
-                
-                saveFileTree(data.fileTree)
+            const firstFile = Object.keys(data.fileTree)[0];
+            if (firstFile && !openFiles.includes(firstFile)) {
+                setOpenFiles([firstFile]);
+                setCurrentFile(firstFile);
             }
-        })
-
-        receiveMessage('ai-typing', (data) => {
-            setIsAiTyping(data.isTyping)
-        })
-
-        fetchProjectDetails()
-
-        return () => {
-            if (serverReadyListenerRef.current && webContainer) {
-                webContainer.off('server-ready', serverReadyListenerRef.current)
-            }
+            
+            saveFileTree(data.fileTree);
         }
-    }, [project._id])
+    });
+
+    receiveMessage('ai-typing', (data) => {
+        setIsAiTyping(data.isTyping);
+    });
+
+    // FIXED: Fetch project details on mount
+    fetchProjectDetails();
+
+    return () => {
+        if (serverReadyListenerRef.current && webContainer) {
+            webContainer.off('server-ready', serverReadyListenerRef.current);
+        }
+    };
+}, [project?._id]); // ✅ Only re-run if project ID changes
 
     useEffect(() => {
         if (messageBox.current) {
@@ -863,20 +885,33 @@ useEffect(() => {
                             </div>
                             
                             <div className='space-y-2'>
-                                {teamMembers.map(member => (
-                                    <div key={member._id} className='flex items-center gap-3 p-2 rounded-lg hover:bg-[#3c3c3c]'>
-                                        <div className='w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0'>
-                                            {member.email?.charAt(0).toUpperCase() || '?'}
-                                        </div>
-                                        <div className='flex-1 min-w-0'>
-                                            <p className='text-sm text-white truncate'>{member.email || 'Unknown User'}</p>
-                                            <p className='text-xs text-[#858585]'>
-                                                {member._id === user._id ? 'You' : 'Member'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+    {teamMembers.map((member) => {
+        // CRITICAL FIX: Correctly identify owner using project.owner._id
+        const isOwner = project?.owner?._id === member._id;
+        const isCurrentUser = member._id === user._id;
+        
+        return (
+            <div key={member._id} className='flex items-center gap-3 p-2 rounded-lg hover:bg-[#3c3c3c]'>
+                <div className='w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0'>
+                    {member.email?.charAt(0).toUpperCase() || '?'}
+                </div>
+                <div className='flex-1 min-w-0'>
+                    <div className='flex items-center gap-2'>
+                        <p className='text-sm text-white truncate'>{member.email || 'Unknown User'}</p>
+                        {isOwner && (
+                            <span className='px-2 py-0.5 bg-amber-600/20 text-amber-400 text-xs font-semibold rounded border border-amber-600/30'>
+                                Owner
+                            </span>
+                        )}
+                    </div>
+                    <p className='text-xs text-[#858585]'>
+                        {isCurrentUser ? 'You' : isOwner ? 'Creator' : 'Member'}
+                    </p>
+                </div>
+            </div>
+        );
+    })}
+</div>
                         </div>
                     </div>
                 )}
